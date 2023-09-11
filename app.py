@@ -1363,33 +1363,6 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                     zip_model.click(fn=zip_downloader, inputs=[exp_dir1], outputs=[zipped_model, info3])
                 with gr.Group():
                     with gr.Row():
-                        pretrained_G14 = gr.Textbox(
-                            label=i18n("Загрузка предварительно обученных нижнемодовых G-траекторий"),
-                            value="assets/pretrained_v2/f0G40k.pth",
-                            interactive=True,
-                            visible=False
-                        )
-                        pretrained_D15 = gr.Textbox(
-                            label=i18n("Загрузка предварительно обученного нижнемодового D-контура"),
-                            value="assets/pretrained_v2/f0D40k.pth",
-                            interactive=True,
-                            visible=False
-                        )
-                        sr2.change(
-                            change_sr2,
-                            [sr2, if_f0_3, version19],
-                            [pretrained_G14, pretrained_D15],
-                        )
-                        version19.change(
-                            change_version19,
-                            [sr2, if_f0_3, version19],
-                            [pretrained_G14, pretrained_D15, sr2],
-                        )
-                        if_f0_3.change(
-                            change_f0,
-                            [if_f0_3, sr2, version19],
-                            [f0method8, pretrained_G14, pretrained_D15],
-                        )
                         
 if config.iscolab:
         app.queue(concurrency_count=511, max_size=1022).launch(share=True)
