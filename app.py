@@ -885,7 +885,7 @@ def upload_to_dataset(files, dir):
     return i18n("Обработка данных"), {"value":dir,"__type__":"update"}
     
 def zip_downloader(model):
-    if not os.path.exists(f'./weights/{model}.pth'):
+    if not os.path.exists(f'./assets/weights/{model}.pth'):
         return {"__type__": "update"}, f'Убедитесь, что модель была обучена. Я не могу найти {model}.pth'
     index_found = False
     for file in os.listdir(f'./logs/{model}'):
@@ -893,7 +893,7 @@ def zip_downloader(model):
             log_file = file
             index_found = True
     if index_found:
-        return [f'./weights/{model}.pth', f'./logs/{model}/{log_file}'], "Готово"
+        return [f'./assets/weights/{model}.pth', f'./logs/{model}/{log_file}'], "Готово"
     else:
         return f'./weights/{model}.pth', "Не удалось найти файл Index."
     
