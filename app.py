@@ -883,6 +883,43 @@ def upload_to_dataset(files, dir):
     except:
         pass
     return i18n("处理数据"), {"value":dir,"__type__":"update"}
+    
+def zip_downloader(model):
+    if not os.path.exists(f'./weights/{model}.pth'):
+        return {"__type__": "update"}, f'Make sure the Voice Name is correct. I could not find {model}.pth'
+    index_found = False
+    for file in os.listdir(f'./logs/{model}'):
+        if file.endswith('.index') and 'added' in file:
+            log_file = file
+            index_found = True
+    if index_found:
+        return [f'./weights/{model}.pth', f'./logs/{model}/{log_file}'], "Done"
+    else:
+        return f'./weights/{model}.pth', "Could not find Index file."
+    
+def fast(filepath, spk_item, vc_transform0,f0method0,file_index1,index_rate1,filter_radius0, resample_sr0,rms_mix_rate0, protect0, hop):
+    source_audio_path = filepath
+    output_file_name = os.path.basename(filepath)
+    conversion_data = vc_single(
+        spk_item,
+        source_audio_path,
+        vc_transform0,
+        f0_file,
+        f0method0,
+        file_index1,
+        index_rate1,
+        filter_radius0,
+        resample_sr0,
+        rms_mix_rate0,
+        protect0,
+        hop,
+        ""        
+    )
+    if "Success." in conversion_data[0]:
+        wavfile.write(f'audio-outputs/{output_file_name}', conversion_data[1][0], conversion_data[1][1])
+        return f"audio-outputs/{output_file_name}", None, conversion_data[0]
+    else:
+        return gr.update(visible=True), None, conversion_data[0]
 
 with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
     gr.HTML("<h1> EasyGUI v2.9 </h1>")
