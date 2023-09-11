@@ -1358,10 +1358,34 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                             value=i18n("是"),
                             interactive=True,
                         )
-                    zip_model = gr.Button('5.Скачать модель')
-                    zipped_model = gr.Files(label='Файл вашей модели и индекса можно скачать здесь:')
-                    zip_model.click(fn=zip_downloader, inputs=[exp_dir1], outputs=[zipped_model, info3])
-
+                    with gr.Row():
+                        pretrained_G14 = gr.Textbox(
+                            label=i18n("加载预训练底模G路径"),
+                            value="assets/pretrained_v2/f0G40k.pth",
+                            interactive=True,
+                            visible=False
+                        )
+                        pretrained_D15 = gr.Textbox(
+                            label=i18n("加载预训练底模D路径"),
+                            value="assets/pretrained_v2/f0D40k.pth",
+                            interactive=True,
+                            visible=False
+                        )
+                        sr2.change(
+                            change_sr2,
+                            [sr2, if_f0_3, version19],
+                            [pretrained_G14, pretrained_D15],
+                        )
+                        version19.change(
+                            change_version19,
+                            [sr2, if_f0_3, version19],
+                            [pretrained_G14, pretrained_D15, sr2],
+                        )
+                        if_f0_3.change(
+                            change_f0,
+                            [if_f0_3, sr2, version19],
+                            [f0method8, pretrained_G14, pretrained_D15],
+                        )
                     with gr.Row():
                         but5 = gr.Button(i18n("一键训练"), variant="primary", visible=False)
                         but3.click(
@@ -1411,6 +1435,10 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                             info3,
                             api_name="train_start_all",
                         )
+
+                    zip_model = gr.Button('5.Скачать модель')
+                    zipped_model = gr.Files(label='Файл вашей модели и индекса можно скачать здесь:')
+                    zip_model.click(fn=zip_downloader, inputs=[exp_dir1], outputs=[zipped_model, info3])
 
 if config.iscolab:
         app.queue(concurrency_count=511, max_size=1022).launch(share=True)
