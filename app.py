@@ -1393,7 +1393,7 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         
 if config.iscolab:
         app.queue(concurrency_count=511, max_size=1022).launch(share=True)
-    else:
+else:
         app.queue(concurrency_count=511, max_size=1022).launch(
             server_name="0.0.0.0",
             inbrowser=not config.noautoopen,
