@@ -110,7 +110,7 @@ if if_gpu_ok and len(gpu_infos) > 0:
     gpu_info = "\n".join(gpu_infos)
     default_batch_size = min(mem) // 2
 else:
-    gpu_info = i18n("很遗憾您这没有能用的显卡来支持您训练")
+    gpu_info = i18n("Мне жаль, что у вас нет рабочей видеокарты для поддержки обучения.")
     default_batch_size = 1
 gpus = "-".join([i[0] for i in gpu_infos])
 
@@ -606,10 +606,10 @@ def train_index(exp_dir1, version19):
         else "%s/3_feature768" % (exp_dir)
     )
     if not os.path.exists(feature_dir):
-        return "请先进行特征提取!"
+        return "Пожалуйста, сначала сделайте извлечение функций!"
     listdir_res = list(os.listdir(feature_dir))
     if len(listdir_res) == 0:
-        return "请先进行特征提取！"
+        return "Пожалуйста, сначала выполните извлечение признаков!"
     infos = []
     npys = []
     for name in sorted(listdir_res):
@@ -704,11 +704,11 @@ def train1key(
         return "\n".join(infos)
 
     ####### step1:处理数据
-    yield get_info_str(i18n("step1:正在处理数据"))
+    yield get_info_str(i18n("шаг1: Обработка данных"))
     [get_info_str(_) for _ in preprocess_dataset(trainset_dir4, exp_dir1, sr2, np7)]
 
     ####### step2a:提取音高
-    yield get_info_str(i18n("step2:正在提取音高&正在提取特征"))
+    yield get_info_str(i18n("шаг 2: Извлечение высоты тона"))
     [
         get_info_str(_)
         for _ in extract_f0_feature(
@@ -717,7 +717,7 @@ def train1key(
     ]
 
     ####### step3a:训练模型
-    yield get_info_str(i18n("step3a:正在训练模型"))
+    yield get_info_str(i18n("Шаг 3: Обучение модели"))
     click_train(
         exp_dir1,
         sr2,
@@ -738,7 +738,7 @@ def train1key(
 
     ####### step3b:训练索引
     [get_info_str(_) for _ in train_index(exp_dir1, version19)]
-    yield get_info_str(i18n("全流程结束！"))
+    yield get_info_str(i18n("Завершение полного процесса!"))
 
 
 #                    ckpt_path2.change(change_info_,[ckpt_path2],[sr__,if_f0__])
@@ -774,7 +774,7 @@ def find_model():
         return sorted(names)[0]
     else:
         try:
-            gr.Info("Do not forget to choose a model.")
+            gr.Info("Выберите модель.")
         except:
             pass
         return ''
@@ -830,9 +830,9 @@ def save_wav(file):
 
 def download_from_url(url, model):
     if url == '':
-        return "URL cannot be left empty."
+        return "URL не может оставаться пустым."
     if model =='':
-        return "You need to name your model. For example: My-Model"
+        return "Необходимо дать имя своей модели. Например: My-Model"
     url = url.strip()
     zip_dirs = ["zips", "unzips"]
     for directory in zip_dirs:
@@ -887,16 +887,16 @@ def upload_to_dataset(files, dir):
 with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
     gr.HTML("<h1> EasyGUI v2.9 </h1>")
     with gr.Tabs():
-        with gr.TabItem(i18n("模型推理")):
+        with gr.TabItem(i18n("Моделируемое рассуждение")):
             with gr.Row():
-                sid0 = gr.Dropdown(label=i18n("推理音色"), choices=sorted(names), value=find_model())
-                refresh_button = gr.Button(i18n("刷新音色列表和索引路径"), variant="primary")
+                sid0 = gr.Dropdown(label=i18n("Тон умозаключения"), choices=sorted(names), value=find_model())
+                refresh_button = gr.Button(i18n("Обновление списка тонов и пути индекса"), variant="primary")
                 #clean_button = gr.Button(i18n("卸载音色省显存"), variant="primary")
                 spk_item = gr.Slider(
                     minimum=0,
                     maximum=2333,
                     step=1,
-                    label=i18n("请选择说话人id"),
+                    label=i18n("Пожалуйста, выберите идентификатор докладчика"),
                     value=0,
                     visible=False,
                     interactive=True,
@@ -905,27 +905,27 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                 #    fn=clean, inputs=[], outputs=[sid0], api_name="infer_clean"
                 #)
                 vc_transform0 = gr.Number(
-                    label=i18n("变调(整数, 半音数量, 升八度12降八度-12)"), value=0
+                    label=i18n("Вариация (целое число, количество полутонов, октава 12 восходящая октава 12 нисходящая октава -12)"), value=0
                 )
-                but0 = gr.Button(i18n("转换"), variant="primary")
+                but0 = gr.Button(i18n("Конверсии"), variant="primary")
             with gr.Row():
                 with gr.Column():
                     with gr.Row():
-                        dropbox = gr.File(label="Drop your audio here & hit the Reload button.")
+                        dropbox = gr.File(label="Отправьте аудиозапись сюда и нажмите кнопку 'Перезагрузка'.")
                     with gr.Row():
                         record_button=gr.Audio(source="microphone", label="OR Record audio.", type="filepath")
                     with gr.Row():
                         input_audio0 = gr.Dropdown(
-                            label=i18n("输入待处理音频文件路径(默认是正确格式示例)"),
+                            label=i18n("Введите путь к обрабатываемому аудиофайлу (по умолчанию - пример правильного формата)"),
                             value=find_audios(True),
                             choices=find_audios()
                         )
                         record_button.change(fn=save_wav, inputs=[record_button], outputs=[input_audio0])
                         dropbox.upload(fn=save_wav, inputs=[dropbox], outputs=[input_audio0])
                 with gr.Column():
-                    with gr.Accordion(label=i18n("自动检测index路径,下拉式选择(dropdown)"), open=False):
+                    with gr.Accordion(label=i18n("Автоопределение пути индекса, выпадающий выбор."), open=False):
                         file_index2 = gr.Dropdown(
-                            label=i18n("自动检测index路径,下拉式选择(dropdown)"),
+                            label=i18n("Автоопределение пути индекса, выпадающий выбор."),
                             choices=get_indexes(),
                             interactive=True,
                             value=get_index()
@@ -933,15 +933,15 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         index_rate1 = gr.Slider(
                             minimum=0,
                             maximum=1,
-                            label=i18n("检索特征占比"),
+                            label=i18n("Процентное соотношение поисковых функций"),
                             value=0.66,
                             interactive=True,
                         )
-                    vc_output2 = gr.Audio(label=i18n("输出音频(右下角三个点,点了可以下载)"))
-                    with gr.Accordion(label=i18n("常规设置"), open=False):
+                    vc_output2 = gr.Audio(label=i18n("Выходной аудиосигнал (три точки в правом нижнем углу, нажмите для загрузки)"))
+                    with gr.Accordion(label=i18n("Общие настройки"), open=False):
                         f0method0 = gr.Radio(
                             label=i18n(
-                                "选择音高提取算法,输入歌声可用pm提速,harvest低音好但巨慢无比,crepe效果好但吃GPU,rmvpe效果最好且微吃GPU"
+                                "Выберите алгоритм выделения высоты тона (rmvpe: лучший и немного съедает GPU; harvest: лучшее качество, но более медленное выделение; crepe: улучшенная речь, но более медленное выделение; mangio-crepe: более быстрое выделение, но менее качественная речь)"
                             ),
                             choices=["pm", "harvest", "crepe", "rmvpe"]
                             if config.dml == False
@@ -952,7 +952,7 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         filter_radius0 = gr.Slider(
                             minimum=0,
                             maximum=7,
-                            label=i18n(">=3则使用对harvest音高识别的结果使用中值滤波，数值为滤波半径，使用可以削弱哑音"),
+                            label=i18n("Если >=3: применить медианную фильтрацию к собранным результатам питча. Значение представляет собой радиус фильтрации и может уменьшить дыхание."),
                             value=3,
                             step=1,
                             interactive=True,
@@ -960,7 +960,7 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         resample_sr0 = gr.Slider(
                             minimum=0,
                             maximum=48000,
-                            label=i18n("后处理重采样至最终采样率，0为不进行重采样"),
+                            label=i18n("Постпроцессинговая передискретизация до конечной частоты дискретизации, 0 - без передискретизации"),
                             value=0,
                             step=1,
                             interactive=True,
@@ -968,7 +968,7 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         rms_mix_rate0 = gr.Slider(
                             minimum=0,
                             maximum=1,
-                            label=i18n("输入源音量包络替换输出音量包络融合比例，越靠近1越使用输出包络"),
+                            label=i18n("Используйте огибающую громкости входа для замены или смешивания с огибающей громкости выхода. Чем ближе это соотношение к 1, тем больше используется огибающая выходного сигнала:"),
                             value=0.21,
                             interactive=True,
                         )
@@ -976,14 +976,14 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                             minimum=0,
                             maximum=0.5,
                             label=i18n(
-                                "保护清辅音和呼吸声，防止电音撕裂等artifact，拉满0.5不开启，调低加大保护力度但可能降低索引效果"
+                                "Защита безголосых согласных и звуков дыхания для предотвращения артефактов, таких как разрывы в электронной музыке. Для отключения установите значение 0,5. Уменьшите значение для усиления защиты, но это может снизить точность индексирования:"
                             ),
                             value=0.33,
                             step=0.01,
                             interactive=True,
                         )
                     file_index1 = gr.Textbox(
-                        label=i18n("特征检索库文件路径,为空则使用下拉的选择结果"),
+                        label=i18n("Путь к файлу библиотеки поиска признаков, если он пуст, используйте выпадающий результат выбора."),
                         value="",
                         interactive=True,
                         visible=False
@@ -1000,9 +1000,9 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                     #     interactive=True,
                     # )
             with gr.Row():
-                f0_file = gr.File(label=i18n("F0曲线文件, 可选, 一行一个音高, 代替默认F0及升降调"), visible=False)
+                f0_file = gr.File(label=i18n("Файл кривой F0, необязательный, один шаг в строке, заменяет F0 и высоту по умолчанию."), visible=False)
             with gr.Row():
-                vc_output1 = gr.Textbox(label=i18n("输出信息"))
+                vc_output1 = gr.Textbox(label=i18n("Выходное сообщение"))
                 but0.click(
                     vc.vc_single,  
                     [
@@ -1024,15 +1024,15 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                     api_name="infer_convert",
                 )
             with gr.Row():
-                with gr.Accordion(open=False, label=i18n("批量转换, 输入待转换音频文件夹, 或上传多个音频文件, 在指定文件夹(默认opt)下输出转换的音频. ")):                
+                with gr.Accordion(open=False, label=i18n("Пакетное преобразование, ввод папки с аудиофайлами для преобразования или загрузка нескольких аудиофайлов, вывод преобразованных аудиофайлов в указанную папку (по умолчанию opt).")):                
                     with gr.Column():
                         vc_transform1 = gr.Number(
-                            label=i18n("变调(整数, 半音数量, 升八度12降八度-12)"), value=0
+                            label=i18n("Вариация (целое число, количество полутонов, октава 12 восходящая октава 12 нисходящая октава -12)"), value=0
                         )
-                        opt_input = gr.Textbox(label=i18n("指定输出文件夹"), value="opt")
+                        opt_input = gr.Textbox(label=i18n("Укажите папку для вывода"), value="opt")
                         f0method1 = gr.Radio(
                             label=i18n(
-                                "选择音高提取算法,输入歌声可用pm提速,harvest低音好但巨慢无比,crepe效果好但吃GPU,rmvpe效果最好且微吃GPU"
+                                "Выберите алгоритм выделения высоты тона (rmvpe: лучший и немного съедает GPU; harvest: лучшее качество, но более медленное выделение; crepe: улучшенная речь, но более медленное выделение; mangio-crepe: более быстрое выделение, но менее качественная речь)"
                             ),
                             choices=["pm", "harvest", "crepe", "rmvpe"]
                             if config.dml == False
@@ -1043,20 +1043,20 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         filter_radius1 = gr.Slider(
                             minimum=0,
                             maximum=7,
-                            label=i18n(">=3则使用对harvest音高识别的结果使用中值滤波，数值为滤波半径，使用可以削弱哑音"),
+                            label=i18n("Если >=3: применить медианную фильтрацию к собранным результатам питча. Значение представляет собой радиус фильтрации и может уменьшить дыхание."),
                             value=3,
                             step=1,
                             interactive=True,
                         )
                     with gr.Column():
                         file_index3 = gr.Textbox(
-                            label=i18n("特征检索库文件路径,为空则使用下拉的选择结果"),
+                            label=i18n("Путь к файлу библиотеки поиска признаков, если он пуст, используйте выпадающий результат выбора."),
                             value="",
                             interactive=True,
                             visible=False
                         )
                         file_index4 = gr.Dropdown(
-                            label=i18n("自动检测index路径,下拉式选择(dropdown)"),
+                            label=i18n("Автоопределение пути индекса, выпадающий выбор."),
                             choices=sorted(index_paths),
                             interactive=True,
                         )
@@ -1074,7 +1074,7 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         index_rate2 = gr.Slider(
                             minimum=0,
                             maximum=1,
-                            label=i18n("检索特征占比"),
+                            label=i18n("Процентное соотношение поисковых функций"),
                             value=1,
                             interactive=True,
                         )
@@ -1082,7 +1082,7 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         resample_sr1 = gr.Slider(
                             minimum=0,
                             maximum=48000,
-                            label=i18n("后处理重采样至最终采样率，0为不进行重采样"),
+                            label=i18n("Постпроцессинговая передискретизация до конечной частоты дискретизации, 0 - без передискретизации"),
                             value=0,
                             step=1,
                             interactive=True,
@@ -1090,7 +1090,7 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         rms_mix_rate1 = gr.Slider(
                             minimum=0,
                             maximum=1,
-                            label=i18n("输入源音量包络替换输出音量包络融合比例，越靠近1越使用输出包络"),
+                            label=i18n("Используйте огибающую громкости входа для замены или смешивания с огибающей громкости выхода. Чем ближе это соотношение к 1, тем больше используется огибающая выходного сигнала:"),
                             value=1,
                             interactive=True,
                         )
@@ -1098,7 +1098,7 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                             minimum=0,
                             maximum=0.5,
                             label=i18n(
-                                "保护清辅音和呼吸声，防止电音撕裂等artifact，拉满0.5不开启，调低加大保护力度但可能降低索引效果"
+                                "Защита безголосых согласных и звуков дыхания для предотвращения артефактов, таких как разрывы в электронной музыке. Для отключения установите значение 0,5. Уменьшите значение для усиления защиты, но это может снизить точность индексирования:"
                             ),
                             value=0.33,
                             step=0.01,
@@ -1106,21 +1106,21 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         )
                     with gr.Column():
                         dir_input = gr.Textbox(
-                            label=i18n("输入待处理音频文件夹路径(去文件管理器地址栏拷就行了)"),
+                            label=i18n("Введите путь к обрабатываемой папке с аудиофайлами (для копирования достаточно перейти в адресную строку файлового менеджера)."),
                             value="E:\codes\py39\\test-20230416b\\todo-songs",
                         )
                         inputs = gr.File(
-                            file_count="multiple", label=i18n("也可批量输入音频文件, 二选一, 优先读文件夹")
+                            file_count="multiple", label=i18n("Также возможен пакетный импорт аудиофайлов, два варианта выбора, приоритетное чтение папки")
                         )
                     with gr.Row():
                         format1 = gr.Radio(
-                            label=i18n("导出文件格式"),
+                            label=i18n("Формат экспортного файла"),
                             choices=["wav", "flac", "mp3", "m4a"],
                             value="flac",
                             interactive=True,
                         )
                         but1 = gr.Button(i18n("转换"), variant="primary")
-                        vc_output3 = gr.Textbox(label=i18n("输出信息"))
+                        vc_output3 = gr.Textbox(label=i18n("выходное сообщение"))
                         but1.click(
                             vc.vc_multi,
                             [
@@ -1148,76 +1148,76 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                 inputs=[sid0, protect0, protect1],
                 outputs=[spk_item, protect0, protect1, file_index2, file_index4],
             )
-        with gr.TabItem("Download Model"):
+        with gr.TabItem("Загрузить модель"):
             with gr.Row():
-                url=gr.Textbox(label="Enter the URL to the Model:")
+                url=gr.Textbox(label="Введите URL-адрес модели:")
             with gr.Row():
-                model = gr.Textbox(label="Name your model:")
-                download_button=gr.Button("Download")
+                model = gr.Textbox(label="Название модели:")
+                download_button=gr.Button("Загрузить")
             with gr.Row():
                 status_bar=gr.Textbox(label="")
                 download_button.click(fn=download_from_url, inputs=[url, model], outputs=[status_bar])
             with gr.Row():
                 gr.Markdown(
                 """
-                ❤️ If you like the EasyGUI, help me keep it.❤️ 
-                https://paypal.me/lesantillan
+                ❤️ Если вам нравится EasyGUI, помогите мне сохранить его.❤️ 
+                https://paypal.me/lesantillan (пейпал разраба)
                 """
                 )
         with gr.TabItem(i18n("训练")):
             with gr.Row():
                 with gr.Column():
-                    exp_dir1 = gr.Textbox(label=i18n("输入实验名"), value="My-Voice")
+                    exp_dir1 = gr.Textbox(label=i18n("Имя модели"), value="My-Voice")
                     np7 = gr.Slider(
                         minimum=0,
                         maximum=config.n_cpu,
                         step=1,
-                        label=i18n("提取音高和处理数据使用的CPU进程数"),
+                        label=i18n("Количество процессов ЦП, используемых для извлечения питча и обработки данных"),
                         value=int(np.ceil(config.n_cpu / 1.5)),
                         interactive=True,
                     )
                     sr2 = gr.Radio(
-                        label=i18n("目标采样率"),
+                        label=i18n("Целевая частота дискретизации"),
                         choices=["40k", "48k"],
                         value="40k",
                         interactive=True,
                         visible=False
                     )
                     if_f0_3 = gr.Radio(
-                        label=i18n("模型是否带音高指导(唱歌一定要, 语音可以不要)"),
+                        label=i18n("Поставляется ли модель в комплекте с питч-гидом (пение - обязательно, голос - нет)"),
                         choices=[True, False],
                         value=True,
                         interactive=True,
                         visible=False
                     )
                     version19 = gr.Radio(
-                        label=i18n("版本"),
+                        label=i18n("RVC version"),
                         choices=["v1", "v2"],
                         value="v2",
                         interactive=True,
                         visible=False,
                     )
                     trainset_dir4 = gr.Textbox(
-                        label=i18n("输入训练文件夹路径"), value='./dataset/'+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                        label=i18n("Путь к вашему набору данных (аудиофайлы):"), value='./dataset/'+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                     )
-                    easy_uploader = gr.Files(label=i18n("也可批量输入音频文件, 二选一, 优先读文件夹"),file_types=['audio'])
-                    but1 = gr.Button(label=i18n("处理数据"), variant="primary")
-                    info1 = gr.Textbox(label=i18n("输出信息"), value="")
+                    easy_uploader = gr.Files(label=i18n("Перетащите сюда свои аудиозаписи или нажмите на поле и загрузите через проводник"),file_types=['audio'])
+                    but1 = gr.Button(label=i18n("1.Обработать набор данных"), variant="primary")
+                    info1 = gr.Textbox(label=i18n("Статус:"), value="")
                     easy_uploader.upload(fn=upload_to_dataset, inputs=[easy_uploader, trainset_dir4], outputs=[info1, trainset_dir4])
                     gpus6 = gr.Textbox(
-                        label=i18n("以-分隔输入使用的卡号, 例如   0-1-2   使用卡0和卡1和卡2"),
+                        label=i18n("Введите номера используемых карт, например, 0-1-2"),
                         value=gpus,
                         interactive=True,
                         visible=F0GPUVisible,
                     )
                     gpu_info9 = gr.Textbox(
-                        label=i18n("显卡信息"), value=gpu_info, visible=F0GPUVisible
+                        label=i18n("Информация о видеокарте"), value=gpu_info, visible=F0GPUVisible
                     )
                     spk_id5 = gr.Slider(
                         minimum=0,
                         maximum=4,
                         step=1,
-                        label=i18n("请指定说话人id"),
+                        label=i18n("Пожалуйста, укажите id докладчика"),
                         value=0,
                         interactive=True,
                         visible=False
@@ -1231,7 +1231,7 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                 with gr.Column():
                     f0method8 = gr.Radio(
                         label=i18n(
-                            "选择音高提取算法:输入歌声可用pm提速,高质量语音但CPU差可用dio提速,harvest质量更好但慢,rmvpe效果最好且微吃CPU/GPU"
+                            "Выберите алгоритм выделения высоты тона (rmvpe: лучший и немного съедает GPU; harvest: лучшее качество, но более медленное выделение; crepe: улучшенная речь, но более медленное выделение; mangio-crepe: более быстрое выделение, но менее качественная речь)"
                         ),
                         choices=["pm", "harvest", "dio", "rmvpe", "rmvpe_gpu"],
                         value="rmvpe_gpu",
@@ -1239,14 +1239,14 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                     )
                     gpus_rmvpe = gr.Textbox(
                         label=i18n(
-                            "rmvpe卡号配置：以-分隔输入使用的不同进程卡号,例如0-0-1使用在卡0上跑2个进程并在卡1上跑1个进程"
+                            "Конфигурация rmvpe card number: введите номер карты для различных процессов, которые будут использоваться, например, 0-0-1 для запуска двух процессов на карте 0 и одного процесса на карте 1."
                         ),
                         value="%s-%s" % (gpus, gpus),
                         interactive=True,
                         visible=F0GPUVisible,
                     )
-                    but2 = gr.Button(i18n("特征提取"), variant="primary")
-                    info2 = gr.Textbox(label=i18n("输出信息"), value="", max_lines=8)
+                    but2 = gr.Button(i18n("2.Извлечение высоты тона"), variant="primary")
+                    info2 = gr.Textbox(label=i18n("Статус:"), value="", max_lines=8)
                     f0method8.change(
                         fn=change_f0_method,
                         inputs=[f0method8],
@@ -1271,25 +1271,25 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         minimum=2,
                         maximum=1000,
                         step=1,
-                        label=i18n("总训练轮数total_epoch"),
+                        label=i18n("Общее количество эпох обучения (много не вводите, возможна перетренировка):"),
                         value=150,
                         interactive=True,
                     )
                     gpus16 = gr.Textbox(
-                            label=i18n("以-分隔输入使用的卡号, 例如   0-1-2   使用卡0和卡1和卡2"),
+                            label=i18n("Введите номера используемых карт, например, 0-1-2"),
                             value="0",
                             interactive=True,
                             visible=True
                         )
-                    but3 = gr.Button(i18n("训练模型"), variant="primary")
-                    but4 = gr.Button(i18n("训练特征索引"), variant="primary")
-                    info3 = gr.Textbox(label=i18n("输出信息"), value="", max_lines=10)
-                    with gr.Accordion(label=i18n("常规设置"), open=False):
+                    but3 = gr.Button(i18n("3.Тренировать модель"), variant="primary")
+                    but4 = gr.Button(i18n("4.Тренировать индекс"), variant="primary")
+                    info3 = gr.Textbox(label=i18n("Статус:"), value="", max_lines=10)
+                    with gr.Accordion(label=i18n("Настройки обучения (вы можете оставить их как есть)"), open=False):
                         save_epoch10 = gr.Slider(
                             minimum=1,
                             maximum=50,
                             step=1,
-                            label=i18n("保存频率save_every_epoch"),
+                            label=i18n("Резервное копирование каждые # эпох:"),
                             value=25,
                             interactive=True,
                         )
@@ -1297,39 +1297,43 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                             minimum=1,
                             maximum=40,
                             step=1,
-                            label=i18n("每张显卡的batch_size"),
-                            value=default_batch_size,
+                            label=i18n("Размер пакета (Оставьте его, если вы не знаете, что это!):"),
+                            value=13,
                             interactive=True,
                         )
                         if_save_latest13 = gr.Radio(
-                            label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"),
+                            label=i18n("Для экономии дискового пространства сохраняйте только последний файл '.ckpt':"),
                             choices=[i18n("是"), i18n("否")],
                             value=i18n("是"),
                             interactive=True,
                         )
                         if_cache_gpu17 = gr.Radio(
                             label=i18n(
-                                "是否缓存所有训练集至显存. 10min以下小数据可缓存以加速训练, 大数据缓存会炸显存也加不了多少速"
+                                "Кэшировать все обучающие наборы в память GPU. Кэширование небольших наборов данных (менее 10 минут) может ускорить обучение, но кэширование больших наборов данных будет занимать много памяти GPU и может не дать значительного улучшения скорости:"
                             ),
                             choices=[i18n("是"), i18n("否")],
                             value=i18n("否"),
                             interactive=True,
                         )
                         if_save_every_weights18 = gr.Radio(
-                            label=i18n("是否在每次保存时间点将最终小模型保存至weights文件夹"),
+                            label=i18n("В каждой точке сохранения сохраняйте небольшую итоговую модель в папке 'weights':"),
                             choices=[i18n("是"), i18n("否")],
                             value=i18n("是"),
                             interactive=True,
                         )
+                    zip_model = gr.Button('5.Скачать модель')
+                    zipped_model = gr.Files(label='Файл вашей модели и индекса можно скачать здесь:')
+                    zip_model.click(fn=zip_downloader, inputs=[exp_dir1], outputs=[zipped_model, info3])
+                with gr.Group():
                     with gr.Row():
                         pretrained_G14 = gr.Textbox(
-                            label=i18n("加载预训练底模G路径"),
+                            label=i18n("Загрузка предварительно обученных нижнемодовых G-траекторий"),
                             value="assets/pretrained_v2/f0G40k.pth",
                             interactive=True,
                             visible=False
                         )
                         pretrained_D15 = gr.Textbox(
-                            label=i18n("加载预训练底模D路径"),
+                            label=i18n("Загрузка предварительно обученного нижнемодового D-контура"),
                             value="assets/pretrained_v2/f0D40k.pth",
                             interactive=True,
                             visible=False
@@ -1350,7 +1354,7 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                             [f0method8, pretrained_G14, pretrained_D15],
                         )
                     with gr.Row():
-                        but5 = gr.Button(i18n("一键训练"), variant="primary", visible=False)
+                        but5 = gr.Button(i18n("Обучение в один клик"), variant="primary", visible=False)
                         but3.click(
                             click_train,
                             [
