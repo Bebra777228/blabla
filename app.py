@@ -866,9 +866,9 @@ def download_from_url(url, model):
                     shutil.copy(file_path,f'./assets/weights/{model}.pth')
         shutil.rmtree("zips")
         shutil.rmtree("unzips")
-        return "Success."
+        return "Готово"
     except:
-        return "There's been an error."
+        return "Произошла ошибка."
 
 def upload_to_dataset(files, dir):
     if dir == '':
@@ -879,23 +879,23 @@ def upload_to_dataset(files, dir):
         path=file.name
         shutil.copy2(path,dir)
     try:
-        gr.Info(i18n("处理数据"))
+        gr.Info(i18n("Обработка данных"))
     except:
         pass
-    return i18n("处理数据"), {"value":dir,"__type__":"update"}
+    return i18n("Обработка данных"), {"value":dir,"__type__":"update"}
     
 def zip_downloader(model):
     if not os.path.exists(f'./weights/{model}.pth'):
-        return {"__type__": "update"}, f'Make sure the Voice Name is correct. I could not find {model}.pth'
+        return {"__type__": "update"}, f'Убедитесь, что модель была обучена. Я не могу найти {model}.pth'
     index_found = False
     for file in os.listdir(f'./logs/{model}'):
         if file.endswith('.index') and 'added' in file:
             log_file = file
             index_found = True
     if index_found:
-        return [f'./weights/{model}.pth', f'./logs/{model}/{log_file}'], "Done"
+        return [f'./weights/{model}.pth', f'./logs/{model}/{log_file}'], "Готово"
     else:
-        return f'./weights/{model}.pth', "Could not find Index file."
+        return f'./weights/{model}.pth', "Не удалось найти файл Index."
     
 def fast(filepath, spk_item, vc_transform0,f0method0,file_index1,index_rate1,filter_radius0, resample_sr0,rms_mix_rate0, protect0, hop):
     source_audio_path = filepath
@@ -1390,57 +1390,8 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                             [if_f0_3, sr2, version19],
                             [f0method8, pretrained_G14, pretrained_D15],
                         )
-                    with gr.Row():
-                        but5 = gr.Button(i18n("Обучение в один клик"), variant="primary", visible=False)
-                        but3.click(
-                            click_train,
-                            [
-                                exp_dir1,
-                                sr2,
-                                if_f0_3,
-                                spk_id5,
-                                save_epoch10,
-                                total_epoch11,
-                                batch_size12,
-                                if_save_latest13,
-                                pretrained_G14,
-                                pretrained_D15,
-                                gpus16,
-                                if_cache_gpu17,
-                                if_save_every_weights18,
-                                version19,
-                            ],
-                            info3,
-                            api_name="train_start",
-                        )
-                        but4.click(train_index, [exp_dir1, version19], info3)
-                        but5.click(
-                            train1key,
-                            [
-                                exp_dir1,
-                                sr2,
-                                if_f0_3,
-                                trainset_dir4,
-                                spk_id5,
-                                np7,
-                                f0method8,
-                                save_epoch10,
-                                total_epoch11,
-                                batch_size12,
-                                if_save_latest13,
-                                pretrained_G14,
-                                pretrained_D15,
-                                gpus16,
-                                if_cache_gpu17,
-                                if_save_every_weights18,
-                                version19,
-                                gpus_rmvpe,
-                            ],
-                            info3,
-                            api_name="train_start_all",
-                        )
-
-    if config.iscolab:
+                        
+if config.iscolab:
         app.queue(concurrency_count=511, max_size=1022).launch(share=True)
     else:
         app.queue(concurrency_count=511, max_size=1022).launch(
