@@ -774,7 +774,7 @@ def find_model():
         return sorted(names)[0]
     else:
         try:
-            gr.Info("Выберите модель.")
+            gr.Info("Зайдите по ссылке 'Running on public URL'")
         except:
             pass
         return ''
