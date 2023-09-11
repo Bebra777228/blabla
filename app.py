@@ -1361,7 +1361,57 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                     zip_model = gr.Button('5.Скачать модель')
                     zipped_model = gr.Files(label='Файл вашей модели и индекса можно скачать здесь:')
                     zip_model.click(fn=zip_downloader, inputs=[exp_dir1], outputs=[zipped_model, info3])
-                        
+
+                    with gr.Row():
+                        but5 = gr.Button(i18n("一键训练"), variant="primary", visible=False)
+                        but3.click(
+                            click_train,
+                            [
+                                exp_dir1,
+                                sr2,
+                                if_f0_3,
+                                spk_id5,
+                                save_epoch10,
+                                total_epoch11,
+                                batch_size12,
+                                if_save_latest13,
+                                pretrained_G14,
+                                pretrained_D15,
+                                gpus16,
+                                if_cache_gpu17,
+                                if_save_every_weights18,
+                                version19,
+                            ],
+                            info3,
+                            api_name="train_start",
+                        )
+                        but4.click(train_index, [exp_dir1, version19], info3)
+                        but5.click(
+                            train1key,
+                            [
+                                exp_dir1,
+                                sr2,
+                                if_f0_3,
+                                trainset_dir4,
+                                spk_id5,
+                                np7,
+                                f0method8,
+                                save_epoch10,
+                                total_epoch11,
+                                batch_size12,
+                                if_save_latest13,
+                                pretrained_G14,
+                                pretrained_D15,
+                                gpus16,
+                                if_cache_gpu17,
+                                if_save_every_weights18,
+                                version19,
+                                gpus_rmvpe,
+                            ],
+                            info3,
+                            api_name="train_start_all",
+                        )
+
 if config.iscolab:
         app.queue(concurrency_count=511, max_size=1022).launch(share=True)
 else:
