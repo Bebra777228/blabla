@@ -1282,6 +1282,14 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                         interactive=True,
                         visible=F0GPUVisible,
                     )
+                    extraction_crepe_hop_length = gr.Slider(
+                        minimum=1,
+                        maximum=512,
+                        step=1,
+                        label=i18n("Длина скачка - это время, которое требуется говорящему для перехода к драматической тональности. При меньшей длине скачка требуется больше времени для вывода, но зато он более точен."),
+                        value=128,
+                        interactive=True
+                    )
                     but2 = gr.Button(i18n("2.Извлечение высоты тона"), variant="primary")
                     info2 = gr.Textbox(label=i18n("Статус:"), value="", max_lines=8)
                     f0method8.change(
