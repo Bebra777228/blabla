@@ -1361,8 +1361,6 @@ with gr.Blocks(title="EasyGUI v2.9",theme=gr.themes.Base()) as app:
                     zip_model = gr.Button('5.Скачать модель')
                     zipped_model = gr.Files(label='Файл вашей модели и индекса можно скачать здесь:')
                     zip_model.click(fn=zip_downloader, inputs=[exp_dir1], outputs=[zipped_model, info3])
-                with gr.Group():
-                    with gr.Row():
                         
 if config.iscolab:
         app.queue(concurrency_count=511, max_size=1022).launch(share=True)
