@@ -1,6 +1,7 @@
 import os, sys
 import datetime, subprocess
 from mega import Mega
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 import logging
@@ -32,6 +33,7 @@ from infer.lib.train.process_ckpt import (
 )
 from infer.modules.uvr5.modules import uvr
 from infer.modules.vc.modules import VC
+
 logging.getLogger("numba").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
@@ -110,7 +112,9 @@ if if_gpu_ok and len(gpu_infos) > 0:
     gpu_info = "\n".join(gpu_infos)
     default_batch_size = min(mem) // 2
 else:
-    gpu_info = i18n("Мне жаль, что у вас нет рабочей видеокарты для поддержки обучения.")
+    gpu_info = i18n(
+        "Мне жаль, что у вас нет рабочей видеокарты для поддержки обучения."
+    )
     default_batch_size = 1
 gpus = "-".join([i[0] for i in gpu_infos])
 
@@ -154,14 +158,19 @@ def change_choices():
         for name in files:
             if name.endswith(".index") and "trained" not in name:
                 index_paths.append("%s/%s" % (root, name))
-    audio_files=[]
+    audio_files = []
     for filename in os.listdir("./audios"):
-        if filename.endswith(('.wav','.mp3','.ogg')):
-            audio_files.append('./audios/'+filename)
-    return {"choices": sorted(names), "__type__": "update"}, {
-        "choices": sorted(index_paths),
-        "__type__": "update",
-    }, {"choices": sorted(audio_files), "__type__": "update"}
+        if filename.endswith((".wav", ".mp3", ".ogg")):
+            audio_files.append("./audios/" + filename)
+    return (
+        {"choices": sorted(names), "__type__": "update"},
+        {
+            "choices": sorted(index_paths),
+            "__type__": "update",
+        },
+        {"choices": sorted(audio_files), "__type__": "update"},
+    )
+
 
 def clean():
     return {"value": "", "__type__": "update"}
@@ -734,7 +743,11 @@ def train1key(
         if_save_every_weights18,
         version19,
     )
-    yield get_info_str(i18n("По окончании обучения можно просмотреть журнал обучения на консоли или журнал train.log"))
+    yield get_info_str(
+        i18n(
+            "По окончании обучения можно просмотреть журнал обучения на консоли или журнал train.log"
+        )
+    )
 
     ####### step3b:训练索引
     [get_info_str(_) for _ in train_index(exp_dir1, version19)]
@@ -768,70 +781,81 @@ def change_f0_method(f0method8):
         visible = False
     return {"visible": visible, "__type__": "update"}
 
+
 def find_model():
     if len(names) > 0:
-        vc.get_vc(sorted(names)[0],None,None)
+        vc.get_vc(sorted(names)[0], None, None)
         return sorted(names)[0]
     else:
         try:
             gr.Info("Do not forget to choose a model.")
         except:
             pass
-        return ''
-    
-def find_audios(index=False):     
-    audio_files=[]
-    if not os.path.exists('./audios'): os.mkdir("./audios")
+        return ""
+
+
+def find_audios(index=False):
+    audio_files = []
+    if not os.path.exists("./audios"):
+        os.mkdir("./audios")
     for filename in os.listdir("./audios"):
-        if filename.endswith(('.wav','.mp3','.ogg')):
-            audio_files.append("./audios/"+filename)
+        if filename.endswith((".wav", ".mp3", ".ogg")):
+            audio_files.append("./audios/" + filename)
     if index:
-        if len(audio_files) > 0: return sorted(audio_files)[0]
-        else: return ""
-    elif len(audio_files) > 0: return sorted(audio_files)
-    else: return []
+        if len(audio_files) > 0:
+            return sorted(audio_files)[0]
+        else:
+            return ""
+    elif len(audio_files) > 0:
+        return sorted(audio_files)
+    else:
+        return []
+
 
 def get_index():
-    if find_model() != '':
-        chosen_model=sorted(names)[0].split(".")[0]
-        logs_path="./logs/"+chosen_model
+    if find_model() != "":
+        chosen_model = sorted(names)[0].split(".")[0]
+        logs_path = "./logs/" + chosen_model
         if os.path.exists(logs_path):
             for file in os.listdir(logs_path):
                 if file.endswith(".index"):
                     return os.path.join(logs_path, file)
-            return ''
+            return ""
         else:
-            return ''
-        
+            return ""
+
+
 def get_indexes():
-    indexes_list=[]
+    indexes_list = []
     for dirpath, dirnames, filenames in os.walk("./logs/"):
         for filename in filenames:
             if filename.endswith(".index"):
-                indexes_list.append(os.path.join(dirpath,filename))
+                indexes_list.append(os.path.join(dirpath, filename))
     if len(indexes_list) > 0:
         return indexes_list
     else:
-        return ''
-    
+        return ""
+
+
 def save_wav(file):
     try:
-        file_path=file.name
-        shutil.move(file_path,'./audios')
-        return './audios/'+os.path.basename(file_path)
+        file_path = file.name
+        shutil.move(file_path, "./audios")
+        return "./audios/" + os.path.basename(file_path)
     except AttributeError:
         try:
-            new_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+'.wav'
-            new_path='./audios/'+new_name
-            shutil.move(file,new_path)
+            new_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".wav"
+            new_path = "./audios/" + new_name
+            shutil.move(file, new_path)
             return new_path
         except TypeError:
             return None
 
+
 def download_from_url(url, model):
-    if url == '':
+    if url == "":
         return "URL нельзя оставлять пустым."
-    if model =='':
+    if model == "":
         return "Необходимо дать имя своей модели. Например: My-Model"
     url = url.strip()
     zip_dirs = ["zips", "unzips"]
@@ -840,77 +864,88 @@ def download_from_url(url, model):
             shutil.rmtree(directory)
     os.makedirs("zips", exist_ok=True)
     os.makedirs("unzips", exist_ok=True)
-    zipfile = model + '.zip'
-    zipfile_path = './zips/' + zipfile
+    zipfile = model + ".zip"
+    zipfile_path = "./zips/" + zipfile
     try:
         if "drive.google.com" in url:
             subprocess.run(["gdown", url, "--fuzzy", "-O", zipfile_path])
         elif "mega.nz" in url:
             m = Mega()
-            m.download_url(url, './zips')
+            m.download_url(url, "./zips")
         else:
             subprocess.run(["wget", url, "-O", zipfile_path])
         for filename in os.listdir("./zips"):
             if filename.endswith(".zip"):
-                zipfile_path = os.path.join("./zips/",filename)
-                shutil.unpack_archive(zipfile_path, "./unzips", 'zip')
+                zipfile_path = os.path.join("./zips/", filename)
+                shutil.unpack_archive(zipfile_path, "./unzips", "zip")
             else:
                 return "No zipfile found."
-        for root, dirs, files in os.walk('./unzips'):
+        for root, dirs, files in os.walk("./unzips"):
             for file in files:
                 file_path = os.path.join(root, file)
                 if file.endswith(".index"):
-                    os.mkdir(f'./logs/{model}')
-                    shutil.copy2(file_path,f'./logs/{model}')
+                    os.mkdir(f"./logs/{model}")
+                    shutil.copy2(file_path, f"./logs/{model}")
                 elif "G_" not in file and "D_" not in file and file.endswith(".pth"):
-                    shutil.copy(file_path,f'./assets/weights/{model}.pth')
+                    shutil.copy(file_path, f"./assets/weights/{model}.pth")
         shutil.rmtree("zips")
         shutil.rmtree("unzips")
         return "Успех."
     except:
         return "Произошла ошибка."
 
+
 def upload_to_dataset(files, dir):
-    if dir == '':
-        dir = './dataset/'+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    if dir == "":
+        dir = "./dataset/" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if not os.path.exists(dir):
         os.makedirs(dir)
     for file in files:
-        path=file.name
-        shutil.copy2(path,dir)
+        path = file.name
+        shutil.copy2(path, dir)
     try:
         gr.Info(i18n("Обработка данных"))
     except:
         pass
-    return i18n("Обработка данных"), {"value":dir,"__type__":"update"}
+    return i18n("Обработка данных"), {"value": dir, "__type__": "update"}
+
 
 def download_model_files(model):
     model_found = False
     index_found = False
-    if os.path.exists(f'./assets/weights/{model}.pth'): model_found = True
-    if os.path.exists(f'./logs/{model}'):
-        for file in os.listdir(f'./logs/{model}'):
-            if file.endswith('.index') and 'added' in file:
+    if os.path.exists(f"./assets/weights/{model}.pth"):
+        model_found = True
+    if os.path.exists(f"./logs/{model}"):
+        for file in os.listdir(f"./logs/{model}"):
+            if file.endswith(".index") and "added" in file:
                 log_file = file
                 index_found = True
     if model_found and index_found:
-        return [f'./assets/weights/{model}.pth', f'./logs/{model}/{log_file}'], "Done"
+        return [f"./assets/weights/{model}.pth", f"./logs/{model}/{log_file}"], "Done"
     elif model_found and not index_found:
-        return f'./assets/weights/{model}.pth', "Не удалось найти файл Index."
+        return f"./assets/weights/{model}.pth", "Не удалось найти файл Index."
     elif index_found and not model_found:
-        return f'./logs/{model}/{log_file}', f'Убедитесь, что имя голоса указано правильно. Я не могу найти {model}.pth'
+        return (
+            f"./logs/{model}/{log_file}",
+            f"Убедитесь, что имя голоса указано правильно. Я не могу найти {model}.pth",
+        )
     else:
-        return None, f'Не удалось найти {model}.pth или соответствующий индексный файл.'
+        return None, f"Не удалось найти {model}.pth или соответствующий индексный файл."
 
-with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue="zinc")) as app:
+
+with gr.Blocks(
+    title="🔊", theme=gr.themes.Base(primary_hue="rose", neutral_hue="zinc")
+) as app:
     with gr.Row():
         gr.HTML("<img  src='file/a.png' alt='image'>")
     with gr.Tabs():
         with gr.TabItem(i18n("Вывод модели")):
             with gr.Row():
-                sid0 = gr.Dropdown(label=i18n("Ваша модель"), choices=sorted(names), value=find_model())
+                sid0 = gr.Dropdown(
+                    label=i18n("Ваша модель"), choices=sorted(names), value=find_model()
+                )
                 refresh_button = gr.Button(i18n("Обновить"), variant="primary")
-                #clean_button = gr.Button(i18n("卸载音色省显存"), variant="primary")
+                # clean_button = gr.Button(i18n("卸载音色省显存"), variant="primary")
                 spk_item = gr.Slider(
                     minimum=0,
                     maximum=2333,
@@ -920,43 +955,71 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                     visible=False,
                     interactive=True,
                 )
-                #clean_button.click(
+                # clean_button.click(
                 #    fn=clean, inputs=[], outputs=[sid0], api_name="infer_clean"
-                #)
+                # )
                 vc_transform0 = gr.Number(
-                    label=i18n("Transpose (целое число, количество полутонов, повышение на октаву: 12, понизить на октаву: -12):"), value=0
+                    label=i18n(
+                        "Transpose (целое число, количество полутонов, повышение на октаву: 12, понизить на октаву: -12):"
+                    ),
+                    value=0,
                 )
                 but0 = gr.Button(i18n("Конвертировать"), variant="primary")
             with gr.Row():
                 with gr.Column():
                     with gr.Row():
-                        dropbox = gr.File(label="Отправьте аудиозапись сюда и нажмите кнопку Перезагрузка.")
+                        dropbox = gr.File(
+                            label="Отправьте аудиозапись сюда и нажмите кнопку Перезагрузка."
+                        )
                     with gr.Row():
-                        record_button=gr.Audio(source="microphone", label="Запись звука с микрофона.", type="filepath")
+                        record_button = gr.Audio(
+                            source="microphone",
+                            label="Запись звука с микрофона.",
+                            type="filepath",
+                        )
                     with gr.Row():
                         input_audio0 = gr.Dropdown(
-                            label=i18n("Введите путь к обрабатываемому аудиофайлу (по умолчанию - пример правильного формата)"),
+                            label=i18n(
+                                "Введите путь к обрабатываемому аудиофайлу (по умолчанию - пример правильного формата)"
+                            ),
                             value=find_audios(True),
-                            choices=find_audios()
+                            choices=find_audios(),
                         )
-                        record_button.change(fn=save_wav, inputs=[record_button], outputs=[input_audio0])
-                        dropbox.upload(fn=save_wav, inputs=[dropbox], outputs=[input_audio0])
+                        record_button.change(
+                            fn=save_wav, inputs=[record_button], outputs=[input_audio0]
+                        )
+                        dropbox.upload(
+                            fn=save_wav, inputs=[dropbox], outputs=[input_audio0]
+                        )
                 with gr.Column():
-                    with gr.Accordion(label=i18n("Автоопределение пути индекса и выбор из выпадающего списка:"), open=False):
+                    with gr.Accordion(
+                        label=i18n(
+                            "Автоопределение пути индекса и выбор из выпадающего списка:"
+                        ),
+                        open=False,
+                    ):
                         file_index2 = gr.Dropdown(
-                            label=i18n("Файл индекса (выберите ваш индекс из списка если это не произошло автоматически)"),
+                            label=i18n(
+                                "Файл индекса (выберите ваш индекс из списка если это не произошло автоматически)"
+                            ),
                             choices=get_indexes(),
                             interactive=True,
-                            value=get_index()
+                            value=get_index(),
                         )
                         index_rate1 = gr.Slider(
                             minimum=0,
                             maximum=1,
-                            label=i18n("Коэффициент поискового тона (управляет силой акцента, слишком высокий коэффициент приводит к появлению артефактов):"),
+                            label=i18n(
+                                "Коэффициент поискового тона (управляет силой акцента, слишком высокий коэффициент приводит к появлению артефактов):"
+                            ),
                             value=0.66,
                             interactive=True,
                         )
-                    vc_output2 = gr.Audio(label=i18n("Экспорт аудио (нажмите на три точки в правом нижнем углу, чтобы загрузить)"))
+                    vc_output2 = gr.Audio(
+                        label=i18n(
+                            "Экспорт аудио (нажмите на три точки в правом нижнем углу, чтобы загрузить)"
+                        )
+                    )
                     with gr.Accordion(label=i18n("Общие настройки"), open=False):
                         f0method0 = gr.Radio(
                             label=i18n(
@@ -971,7 +1034,9 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                         filter_radius0 = gr.Slider(
                             minimum=0,
                             maximum=7,
-                            label=i18n("Если >=3: применить медианную фильтрацию к собранным результатам питча. Значение представляет собой радиус фильтрации и может уменьшить дыхание."),
+                            label=i18n(
+                                "Если >=3: применить медианную фильтрацию к собранным результатам питча. Значение представляет собой радиус фильтрации и может уменьшить дыхание."
+                            ),
                             value=3,
                             step=1,
                             interactive=True,
@@ -979,16 +1044,20 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                         resample_sr0 = gr.Slider(
                             minimum=0,
                             maximum=48000,
-                            label=i18n("Постпроцессинговая передискретизация до конечной частоты дискретизации, 0 - без передискретизации"),
+                            label=i18n(
+                                "Постпроцессинговая передискретизация до конечной частоты дискретизации, 0 - без передискретизации"
+                            ),
                             value=0,
                             step=1,
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                         rms_mix_rate0 = gr.Slider(
                             minimum=0,
                             maximum=1,
-                            label=i18n("Настройте масштаб огибающей громкости. Чем ближе к 0, тем больше она имитирует громкость оригинального вокала. При относительно низком уровне громкости может помочь замаскировать шумы и сделать звучание более естественным. Ближе к 1 - громкость будет более стабильной:"),
+                            label=i18n(
+                                "Настройте масштаб огибающей громкости. Чем ближе к 0, тем больше она имитирует громкость оригинального вокала. При относительно низком уровне громкости может помочь замаскировать шумы и сделать звучание более естественным. Ближе к 1 - громкость будет более стабильной:"
+                            ),
                             value=0.21,
                             interactive=True,
                         )
@@ -1003,10 +1072,12 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                             interactive=True,
                         )
                     file_index1 = gr.Textbox(
-                        label=i18n("Путь к файлу библиотеки поиска тона, если он пуст, используйте выпадающий результат выбора."),
+                        label=i18n(
+                            "Путь к файлу библиотеки поиска тона, если он пуст, используйте выпадающий результат выбора."
+                        ),
                         value="",
                         interactive=True,
-                        visible=False
+                        visible=False,
                     )
                     refresh_button.click(
                         fn=change_choices,
@@ -1020,11 +1091,16 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                     #     interactive=True,
                     # )
             with gr.Row():
-                f0_file = gr.File(label=i18n("Файл кривой F0, необязательный, один шаг в строке, заменяет F0 и высоту по умолчанию."), visible=False)
+                f0_file = gr.File(
+                    label=i18n(
+                        "Файл кривой F0, необязательный, один шаг в строке, заменяет F0 и высоту по умолчанию."
+                    ),
+                    visible=False,
+                )
             with gr.Row():
                 vc_output1 = gr.Textbox(label=i18n("Выходная информация"))
                 but0.click(
-                    vc.vc_single,  
+                    vc.vc_single,
                     [
                         spk_item,
                         input_audio0,
@@ -1044,11 +1120,21 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                     api_name="infer_convert",
                 )
             with gr.Row():
-                with gr.Accordion(open=False, label=i18n("Пакетное преобразование. Укажите папку, содержащую аудиофайлы для конвертирования, или загрузите несколько аудиофайлов. Преобразованные аудиофайлы будут выведены в указанную папку (по умолчанию: 'opt').")):                
+                with gr.Accordion(
+                    open=False,
+                    label=i18n(
+                        "Пакетное преобразование. Укажите папку, содержащую аудиофайлы для конвертирования, или загрузите несколько аудиофайлов. Преобразованные аудиофайлы будут выведены в указанную папку (по умолчанию: 'opt')."
+                    ),
+                ):
                     with gr.Row():
-                        opt_input = gr.Textbox(label=i18n("Укажите выходную папку:"), value="opt")
+                        opt_input = gr.Textbox(
+                            label=i18n("Укажите выходную папку:"), value="opt"
+                        )
                         vc_transform1 = gr.Number(
-                            label=i18n("Transpose (целое число, количество полутонов, повышение на октаву: 12, понизить на октаву: -12):"), value=0
+                            label=i18n(
+                                "Transpose (целое число, количество полутонов, повышение на октаву: 12, понизить на октаву: -12):"
+                            ),
+                            value=0,
                         )
                         f0method1 = gr.Radio(
                             label=i18n(
@@ -1064,24 +1150,30 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                         filter_radius1 = gr.Slider(
                             minimum=0,
                             maximum=7,
-                            label=i18n("Если >=3: применить медианную фильтрацию к собранным результатам питча. Значение представляет собой радиус фильтрации и может уменьшить дыхание."),
+                            label=i18n(
+                                "Если >=3: применить медианную фильтрацию к собранным результатам питча. Значение представляет собой радиус фильтрации и может уменьшить дыхание."
+                            ),
                             value=3,
                             step=1,
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                     with gr.Row():
                         file_index3 = gr.Textbox(
-                            label=i18n("Путь к файлу библиотеки поиска тона, если он пуст, используйте выпадающий результат выбора."),
+                            label=i18n(
+                                "Путь к файлу библиотеки поиска тона, если он пуст, используйте выпадающий результат выбора."
+                            ),
                             value="",
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                         file_index4 = gr.Dropdown(
-                            label=i18n("Автоопределение пути индекса и выбор из выпадающего списка:"),
+                            label=i18n(
+                                "Автоопределение пути индекса и выбор из выпадающего списка:"
+                            ),
                             choices=sorted(index_paths),
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                         refresh_button.click(
                             fn=lambda: change_choices()[1],
@@ -1100,22 +1192,26 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                             label=i18n("Процентное соотношение поисковых функций"),
                             value=1,
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                     with gr.Row():
                         resample_sr1 = gr.Slider(
                             minimum=0,
                             maximum=48000,
-                            label=i18n("Постпроцессинговая передискретизация до конечной частоты дискретизации, 0 - без передискретизации"),
+                            label=i18n(
+                                "Постпроцессинговая передискретизация до конечной частоты дискретизации, 0 - без передискретизации"
+                            ),
                             value=0,
                             step=1,
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                         rms_mix_rate1 = gr.Slider(
                             minimum=0,
                             maximum=1,
-                            label=i18n("Настройте масштаб огибающей громкости. Чем ближе к 0, тем больше она имитирует громкость оригинального вокала. При относительно низком уровне громкости может помочь замаскировать шумы и сделать звучание более естественным. Ближе к 1 - громкость будет более стабильной:"),
+                            label=i18n(
+                                "Настройте масштаб огибающей громкости. Чем ближе к 0, тем больше она имитирует громкость оригинального вокала. При относительно низком уровне громкости может помочь замаскировать шумы и сделать звучание более естественным. Ближе к 1 - громкость будет более стабильной:"
+                            ),
                             value=0.21,
                             interactive=True,
                         )
@@ -1131,11 +1227,16 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                         )
                     with gr.Row():
                         dir_input = gr.Textbox(
-                            label=i18n("Введите путь к обрабатываемой папке с аудиофайлами (скопируйте его из адресной строки файлового менеджера):"),
+                            label=i18n(
+                                "Введите путь к обрабатываемой папке с аудиофайлами (скопируйте его из адресной строки файлового менеджера):"
+                            ),
                             value="./audios",
                         )
                         inputs = gr.File(
-                            file_count="multiple", label=i18n("Можно также импортировать несколько аудиофайлов. Если путь к папке существует, то этот ввод игнорируется.")
+                            file_count="multiple",
+                            label=i18n(
+                                "Можно также импортировать несколько аудиофайлов. Если путь к папке существует, то этот ввод игнорируется."
+                            ),
                         )
                     with gr.Row():
                         format1 = gr.Radio(
@@ -1175,16 +1276,18 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
             )
         with gr.TabItem("Загрузить модель"):
             with gr.Row():
-                url=gr.Textbox(label="Введите URL-адрес модели:")
+                url = gr.Textbox(label="Введите URL-адрес модели:")
             with gr.Row():
                 model = gr.Textbox(label="Название модели:")
-                download_button=gr.Button("Загрузить")
+                download_button = gr.Button("Загрузить")
             with gr.Row():
-                status_bar=gr.Textbox(label="")
-                download_button.click(fn=download_from_url, inputs=[url, model], outputs=[status_bar])
+                status_bar = gr.Textbox(label="")
+                download_button.click(
+                    fn=download_from_url, inputs=[url, model], outputs=[status_bar]
+                )
             with gr.Row():
                 gr.Markdown(
-                """
+                    """
                 ❤️ If you use this and like it, help me keep it.❤️ 
                 https://paypal.me/lesantillan
                 """
@@ -1192,12 +1295,16 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
         with gr.TabItem(i18n("Тренировка")):
             with gr.Row():
                 with gr.Column():
-                    exp_dir1 = gr.Textbox(label=i18n("Введите имя модели:"), value="My-Voice")
+                    exp_dir1 = gr.Textbox(
+                        label=i18n("Введите имя модели:"), value="My-Voice"
+                    )
                     np7 = gr.Slider(
                         minimum=0,
                         maximum=config.n_cpu,
                         step=1,
-                        label=i18n("Количество процессов ЦП, используемых для извлечения питча и обработки данных"),
+                        label=i18n(
+                            "Количество процессов ЦП, используемых для извлечения питча и обработки данных"
+                        ),
                         value=int(np.ceil(config.n_cpu / 1.5)),
                         interactive=True,
                     )
@@ -1206,14 +1313,16 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                         choices=["40k", "48k"],
                         value="40k",
                         interactive=True,
-                        visible=False
+                        visible=False,
                     )
                     if_f0_3 = gr.Radio(
-                        label=i18n("Поставляется ли модель в комплекте с питч-гидом (пение - обязательно, голос - нет)"),
+                        label=i18n(
+                            "Поставляется ли модель в комплекте с питч-гидом (пение - обязательно, голос - нет)"
+                        ),
                         choices=[True, False],
                         value=True,
                         interactive=True,
-                        visible=False
+                        visible=False,
                     )
                     version19 = gr.Radio(
                         label=i18n("版本"),
@@ -1223,20 +1332,35 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                         visible=False,
                     )
                     trainset_dir4 = gr.Textbox(
-                        label=i18n("Укажите путь к учебной папке:"), value='./dataset/'+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                        label=i18n("Укажите путь к учебной папке:"),
+                        value="./dataset/"
+                        + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
                     )
-                    easy_uploader = gr.Files(label=i18n("Можно также импортировать несколько аудиофайлов. Если путь к папке существует, то этот ввод игнорируется."),file_types=['audio'])
+                    easy_uploader = gr.Files(
+                        label=i18n(
+                            "Можно также импортировать несколько аудиофайлов. Если путь к папке существует, то этот ввод игнорируется."
+                        ),
+                        file_types=["audio"],
+                    )
                     but1 = gr.Button(i18n("шаг 1: Обработка данных"), variant="primary")
                     info1 = gr.Textbox(label=i18n("Выходная информация"), value="")
-                    easy_uploader.upload(fn=upload_to_dataset, inputs=[easy_uploader, trainset_dir4], outputs=[info1, trainset_dir4])
+                    easy_uploader.upload(
+                        fn=upload_to_dataset,
+                        inputs=[easy_uploader, trainset_dir4],
+                        outputs=[info1, trainset_dir4],
+                    )
                     gpus6 = gr.Textbox(
-                        label=i18n("Введите индекс(ы) GPU, разделенные символом '-', например, 0-1-2 для использования GPU 0, 1 и 2:"),
+                        label=i18n(
+                            "Введите индекс(ы) GPU, разделенные символом '-', например, 0-1-2 для использования GPU 0, 1 и 2:"
+                        ),
                         value=gpus,
                         interactive=True,
                         visible=F0GPUVisible,
                     )
                     gpu_info9 = gr.Textbox(
-                        label=i18n("Информация о видеокарте"), value=gpu_info, visible=F0GPUVisible
+                        label=i18n("Информация о видеокарте"),
+                        value=gpu_info,
+                        visible=F0GPUVisible,
                     )
                     spk_id5 = gr.Slider(
                         minimum=0,
@@ -1245,14 +1369,14 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                         label=i18n("请指定说话人id"),
                         value=0,
                         interactive=True,
-                        visible=False
+                        visible=False,
                     )
                     but1.click(
                         preprocess_dataset,
                         [trainset_dir4, exp_dir1, sr2, np7],
                         [info1],
                         api_name="train_preprocess",
-                    ) 
+                    )
                 with gr.Column():
                     f0method8 = gr.Radio(
                         label=i18n(
@@ -1271,7 +1395,9 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                         visible=F0GPUVisible,
                     )
                     but2 = gr.Button(i18n("шаг 2: Извлечение питча"), variant="primary")
-                    info2 = gr.Textbox(label=i18n("Выходная информация"), value="", max_lines=8)
+                    info2 = gr.Textbox(
+                        label=i18n("Выходная информация"), value="", max_lines=8
+                    )
                     f0method8.change(
                         fn=change_f0_method,
                         inputs=[f0method8],
@@ -1301,14 +1427,22 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                         interactive=True,
                     )
                     gpus16 = gr.Textbox(
-                            label=i18n("Введите индекс(ы) GPU, разделенные символом '-', например, 0-1-2 для использования GPU 0, 1 и 2:"),
-                            value="0",
-                            interactive=True,
-                            visible=True
-                        )
-                    but3 = gr.Button(i18n("шаг 3: Тренировка модели"), variant="primary")
-                    but4 = gr.Button(i18n("шаг 4: Тренировка индекса"), variant="primary")
-                    info3 = gr.Textbox(label=i18n("Выходная информация"), value="", max_lines=10)
+                        label=i18n(
+                            "Введите индекс(ы) GPU, разделенные символом '-', например, 0-1-2 для использования GPU 0, 1 и 2:"
+                        ),
+                        value="0",
+                        interactive=True,
+                        visible=True,
+                    )
+                    but3 = gr.Button(
+                        i18n("шаг 3: Тренировка модели"), variant="primary"
+                    )
+                    but4 = gr.Button(
+                        i18n("шаг 4: Тренировка индекса"), variant="primary"
+                    )
+                    info3 = gr.Textbox(
+                        label=i18n("Выходная информация"), value="", max_lines=10
+                    )
                     with gr.Accordion(label=i18n("Общие настройки"), open=False):
                         save_epoch10 = gr.Slider(
                             minimum=1,
@@ -1327,11 +1461,13 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                             interactive=True,
                         )
                         if_save_latest13 = gr.Radio(
-                            label=i18n("Сохранять ли только последний файл ckpt для экономии места на жестком диске"),
+                            label=i18n(
+                                "Сохранять ли только последний файл ckpt для экономии места на жестком диске"
+                            ),
                             choices=[i18n("Да"), i18n("Нет")],
                             value=i18n("Да"),
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                         if_cache_gpu17 = gr.Radio(
                             label=i18n(
@@ -1342,28 +1478,36 @@ with gr.Blocks(title="🔊",theme=gr.themes.Base(primary_hue="rose",neutral_hue=
                             interactive=True,
                         )
                         if_save_every_weights18 = gr.Radio(
-                            label=i18n("В каждой точке сохранения сохраняйте небольшую итоговую модель в папке 'weights':"),
+                            label=i18n(
+                                "В каждой точке сохранения сохраняйте небольшую итоговую модель в папке 'weights':"
+                            ),
                             choices=[i18n("Да"), i18n("Нет")],
                             value=i18n("Да"),
                             interactive=True,
                         )
                     with gr.Row():
-                        download_model = gr.Button('шаг 5: Скачать модель')
+                        download_model = gr.Button("шаг 5: Скачать модель")
                     with gr.Row():
-                        model_files = gr.Files(label='Файл с моделью и индексом можно загрузить здесь:')
-                        download_model.click(fn=download_model_files, inputs=[exp_dir1], outputs=[model_files, info3])
+                        model_files = gr.Files(
+                            label="Файл с моделью и индексом можно загрузить здесь:"
+                        )
+                        download_model.click(
+                            fn=download_model_files,
+                            inputs=[exp_dir1],
+                            outputs=[model_files, info3],
+                        )
                     with gr.Row():
                         pretrained_G14 = gr.Textbox(
                             label=i18n("加载预训练底模G路径"),
                             value="assets/pretrained_v2/f0G40k.pth",
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                         pretrained_D15 = gr.Textbox(
                             label=i18n("加载预训练底模D路径"),
                             value="assets/pretrained_v2/f0D40k.pth",
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                         sr2.change(
                             change_sr2,

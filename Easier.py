@@ -1,5 +1,6 @@
 import subprocess, torch, os, traceback, sys, warnings, shutil, numpy as np
 from mega import Mega
+
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
 import threading
 from time import sleep
@@ -8,6 +9,7 @@ import faiss
 from random import shuffle
 import json, datetime, requests
 from gtts import gTTS
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 tmp = os.path.join(now_dir, "TEMP")
@@ -29,82 +31,110 @@ from my_utils import load_audio, CSVutil
 
 global DoFormant, Quefrency, Timbre
 
-if not os.path.isdir('csvdb/'):
-    os.makedirs('csvdb')
-    frmnt, stp = open("csvdb/formanting.csv", 'w'), open("csvdb/stop.csv", 'w')
+if not os.path.isdir("csvdb/"):
+    os.makedirs("csvdb")
+    frmnt, stp = open("csvdb/formanting.csv", "w"), open("csvdb/stop.csv", "w")
     frmnt.close()
     stp.close()
 
 try:
-    DoFormant, Quefrency, Timbre = CSVutil('csvdb/formanting.csv', 'r', 'formanting')
+    DoFormant, Quefrency, Timbre = CSVutil("csvdb/formanting.csv", "r", "formanting")
     DoFormant = (
-        lambda DoFormant: True if DoFormant.lower() == 'true' else (False if DoFormant.lower() == 'false' else DoFormant)
+        lambda DoFormant: True
+        if DoFormant.lower() == "true"
+        else (False if DoFormant.lower() == "false" else DoFormant)
     )(DoFormant)
 except (ValueError, TypeError, IndexError):
     DoFormant, Quefrency, Timbre = False, 1.0, 1.0
-    CSVutil('csvdb/formanting.csv', 'w+', 'formanting', DoFormant, Quefrency, Timbre)
+    CSVutil("csvdb/formanting.csv", "w+", "formanting", DoFormant, Quefrency, Timbre)
 
-#from MDXNet import MDXNetDereverb
+# from MDXNet import MDXNetDereverb
 
 # Check if we're in a Google Colab environment
-if os.path.exists('/content/'):
-    print("\n-------------------------------\nRVC v2 Easy GUI (Colab Edition)\n-------------------------------\n")
+if os.path.exists("/content/"):
+    print(
+        "\n-------------------------------\nRVC v2 Easy GUI (Colab Edition)\n-------------------------------\n"
+    )
 
     print("-------------------------------")
-        # Check if the file exists at the specified path
-    if os.path.exists('/content/Retrieval-based-Voice-Conversion-WebUI/hubert_base.pt'):
+    # Check if the file exists at the specified path
+    if os.path.exists("/content/Retrieval-based-Voice-Conversion-WebUI/hubert_base.pt"):
         # If the file exists, print a statement saying so
-        print("File /content/Retrieval-based-Voice-Conversion-WebUI/hubert_base.pt already exists. No need to download.")
+        print(
+            "File /content/Retrieval-based-Voice-Conversion-WebUI/hubert_base.pt already exists. No need to download."
+        )
     else:
         # If the file doesn't exist, print a statement saying it's downloading
-        print("File /content/Retrieval-based-Voice-Conversion-WebUI/hubert_base.pt does not exist. Starting download.")
+        print(
+            "File /content/Retrieval-based-Voice-Conversion-WebUI/hubert_base.pt does not exist. Starting download."
+        )
 
         # Make a request to the URL
-        response = requests.get('https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/hubert_base.pt')
+        response = requests.get(
+            "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/hubert_base.pt"
+        )
 
         # Ensure the request was successful
         if response.status_code == 200:
             # If the response was a success, save the content to the specified file path
-            with open('/content/Retrieval-based-Voice-Conversion-WebUI/hubert_base.pt', 'wb') as f:
+            with open(
+                "/content/Retrieval-based-Voice-Conversion-WebUI/hubert_base.pt", "wb"
+            ) as f:
                 f.write(response.content)
-            print("Download complete. File saved to /content/Retrieval-based-Voice-Conversion-WebUI/hubert_base.pt.")
+            print(
+                "Download complete. File saved to /content/Retrieval-based-Voice-Conversion-WebUI/hubert_base.pt."
+            )
         else:
             # If the response was a failure, print an error message
-            print("Failed to download file. Status code: " + str(response.status_code) + ".")
+            print(
+                "Failed to download file. Status code: "
+                + str(response.status_code)
+                + "."
+            )
 else:
-    print("\n-------------------------------\nRVC v2 Easy GUI (Local Edition)\n-------------------------------\n")
-    print("-------------------------------\nNot running on Google Colab, skipping download.")
+    print(
+        "\n-------------------------------\nRVC v2 Easy GUI (Local Edition)\n-------------------------------\n"
+    )
+    print(
+        "-------------------------------\nNot running on Google Colab, skipping download."
+    )
+
 
 def formant_apply(qfrency, tmbre):
     Quefrency = qfrency
     Timbre = tmbre
     DoFormant = True
-    CSVutil('csvdb/formanting.csv', 'w+', 'formanting', DoFormant, qfrency, tmbre)
-    
-    return ({"value": Quefrency, "__type__": "update"}, {"value": Timbre, "__type__": "update"})
+    CSVutil("csvdb/formanting.csv", "w+", "formanting", DoFormant, qfrency, tmbre)
+
+    return (
+        {"value": Quefrency, "__type__": "update"},
+        {"value": Timbre, "__type__": "update"},
+    )
+
 
 def get_fshift_presets():
     fshift_presets_list = []
     for dirpath, _, filenames in os.walk("./formantshiftcfg/"):
         for filename in filenames:
             if filename.endswith(".txt"):
-                fshift_presets_list.append(os.path.join(dirpath,filename).replace('\\','/'))
-                
+                fshift_presets_list.append(
+                    os.path.join(dirpath, filename).replace("\\", "/")
+                )
+
     if len(fshift_presets_list) > 0:
         return fshift_presets_list
     else:
-        return ''
+        return ""
 
 
-
-def formant_enabled(cbox, qfrency, tmbre, frmntapply, formantpreset, formant_refresh_button):
-    
-    if (cbox):
-
+def formant_enabled(
+    cbox, qfrency, tmbre, frmntapply, formantpreset, formant_refresh_button
+):
+    if cbox:
         DoFormant = True
-        CSVutil('csvdb/formanting.csv', 'w+', 'formanting', DoFormant, qfrency, tmbre)
-        #print(f"is checked? - {cbox}\ngot {DoFormant}")
-        
+        CSVutil("csvdb/formanting.csv", "w+", "formanting", DoFormant, qfrency, tmbre)
+        # print(f"is checked? - {cbox}\ngot {DoFormant}")
+
         return (
             {"value": True, "__type__": "update"},
             {"visible": True, "__type__": "update"},
@@ -113,14 +143,12 @@ def formant_enabled(cbox, qfrency, tmbre, frmntapply, formantpreset, formant_ref
             {"visible": True, "__type__": "update"},
             {"visible": True, "__type__": "update"},
         )
-        
-        
+
     else:
-        
         DoFormant = False
-        CSVutil('csvdb/formanting.csv', 'w+', 'formanting', DoFormant, qfrency, tmbre)
-        
-        #print(f"is checked? - {cbox}\ngot {DoFormant}")
+        CSVutil("csvdb/formanting.csv", "w+", "formanting", DoFormant, qfrency, tmbre)
+
+        # print(f"is checked? - {cbox}\ngot {DoFormant}")
         return (
             {"value": False, "__type__": "update"},
             {"visible": False, "__type__": "update"},
@@ -130,29 +158,31 @@ def formant_enabled(cbox, qfrency, tmbre, frmntapply, formantpreset, formant_ref
             {"visible": False, "__type__": "update"},
             {"visible": False, "__type__": "update"},
         )
-        
 
 
 def preset_apply(preset, qfer, tmbr):
-    if str(preset) != '':
-        with open(str(preset), 'r') as p:
+    if str(preset) != "":
+        with open(str(preset), "r") as p:
             content = p.readlines()
-            qfer, tmbr = content[0].split('\n')[0], content[1]
-            
+            qfer, tmbr = content[0].split("\n")[0], content[1]
+
             formant_apply(qfer, tmbr)
     else:
         pass
-    return ({"value": qfer, "__type__": "update"}, {"value": tmbr, "__type__": "update"})
+    return (
+        {"value": qfer, "__type__": "update"},
+        {"value": tmbr, "__type__": "update"},
+    )
+
 
 def update_fshift_presets(preset, qfrency, tmbre):
-    
     qfrency, tmbre = preset_apply(preset, qfrency, tmbre)
-    
-    if (str(preset) != ''):
-        with open(str(preset), 'r') as p:
+
+    if str(preset) != "":
+        with open(str(preset), "r") as p:
             content = p.readlines()
-            qfrency, tmbre = content[0].split('\n')[0], content[1]
-            
+            qfrency, tmbre = content[0].split("\n")[0], content[1]
+
             formant_apply(qfrency, tmbre)
     else:
         pass
@@ -162,8 +192,9 @@ def update_fshift_presets(preset, qfrency, tmbre):
         {"value": tmbre, "__type__": "update"},
     )
 
+
 i18n = I18nAuto()
-#i18n.print()
+# i18n.print()
 # 判断是否有能用来训练和加速推理的N卡
 ngpu = torch.cuda.device_count()
 gpu_infos = []
@@ -230,6 +261,7 @@ logging.getLogger("numba").setLevel(logging.WARNING)
 
 hubert_model = None
 
+
 def load_hubert():
     global hubert_model
     models, _, _ = checkpoint_utils.load_model_ensemble_and_task(
@@ -258,7 +290,6 @@ for root, dirs, files in os.walk(index_root, topdown=False):
             index_paths.append("%s/%s" % (root, name))
 
 
-
 def vc_single(
     sid,
     input_audio_path,
@@ -266,7 +297,7 @@ def vc_single(
     f0_file,
     f0_method,
     file_index,
-    #file_index2,
+    # file_index2,
     # file_big_npy,
     index_rate,
     filter_radius,
@@ -289,14 +320,12 @@ def vc_single(
             load_hubert()
         if_f0 = cpt.get("f0", 1)
         file_index = (
-            (
-                file_index.strip(" ")
-                .strip('"')
-                .strip("\n")
-                .strip('"')
-                .strip(" ")
-                .replace("trained", "added")
-            )
+            file_index.strip(" ")
+            .strip('"')
+            .strip("\n")
+            .strip('"')
+            .strip(" ")
+            .replace("trained", "added")
         )  # 防止小白写错，自动帮他替换掉
         # file_big_npy = (
         #     file_big_npy.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
@@ -389,7 +418,7 @@ def vc_multi(
                 resample_sr,
                 rms_mix_rate,
                 protect,
-                crepe_hop_length
+                crepe_hop_length,
             )
             if "Success" in info:
                 try:
@@ -419,6 +448,7 @@ def vc_multi(
         yield "\n".join(infos)
     except:
         yield traceback.format_exc()
+
 
 # 一个选项卡全局只能有一个音色
 def get_vc(sid):
@@ -566,6 +596,7 @@ def preprocess_dataset(trainset_dir, exp_dir, sr, n_p):
     print(log)
     yield log
 
+
 # but2.click(extract_f0,[gpus6,np7,f0method8,if_f0_3,trainset_dir4],[info2])
 def extract_f0_feature(gpus, n_p, f0method, if_f0, exp_dir, version19, echl):
     gpus = gpus.split("-")
@@ -656,51 +687,98 @@ def extract_f0_feature(gpus, n_p, f0method, if_f0, exp_dir, version19, echl):
 def change_sr2(sr2, if_f0_3, version19):
     path_str = "" if version19 == "v1" else "_v2"
     f0_str = "f0" if if_f0_3 else ""
-    if_pretrained_generator_exist = os.access("pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2), os.F_OK)
-    if_pretrained_discriminator_exist = os.access("pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2), os.F_OK)
-    if (if_pretrained_generator_exist == False):
-        print("pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2), "not exist, will not use pretrained model")
-    if (if_pretrained_discriminator_exist == False):
-        print("pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2), "not exist, will not use pretrained model")
-    return (
-        ("pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2)) if if_pretrained_generator_exist else "",
-        ("pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2)) if if_pretrained_discriminator_exist else "",
-        {"visible": True, "__type__": "update"}
+    if_pretrained_generator_exist = os.access(
+        "pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2), os.F_OK
     )
+    if_pretrained_discriminator_exist = os.access(
+        "pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2), os.F_OK
+    )
+    if if_pretrained_generator_exist == False:
+        print(
+            "pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2),
+            "not exist, will not use pretrained model",
+        )
+    if if_pretrained_discriminator_exist == False:
+        print(
+            "pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2),
+            "not exist, will not use pretrained model",
+        )
+    return (
+        ("pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2))
+        if if_pretrained_generator_exist
+        else "",
+        ("pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2))
+        if if_pretrained_discriminator_exist
+        else "",
+        {"visible": True, "__type__": "update"},
+    )
+
 
 def change_version19(sr2, if_f0_3, version19):
     path_str = "" if version19 == "v1" else "_v2"
     f0_str = "f0" if if_f0_3 else ""
-    if_pretrained_generator_exist = os.access("pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2), os.F_OK)
-    if_pretrained_discriminator_exist = os.access("pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2), os.F_OK)
-    if (if_pretrained_generator_exist == False):
-        print("pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2), "not exist, will not use pretrained model")
-    if (if_pretrained_discriminator_exist == False):
-        print("pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2), "not exist, will not use pretrained model")
+    if_pretrained_generator_exist = os.access(
+        "pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2), os.F_OK
+    )
+    if_pretrained_discriminator_exist = os.access(
+        "pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2), os.F_OK
+    )
+    if if_pretrained_generator_exist == False:
+        print(
+            "pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2),
+            "not exist, will not use pretrained model",
+        )
+    if if_pretrained_discriminator_exist == False:
+        print(
+            "pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2),
+            "not exist, will not use pretrained model",
+        )
     return (
-        ("pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2)) if if_pretrained_generator_exist else "",
-        ("pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2)) if if_pretrained_discriminator_exist else "",
+        ("pretrained%s/%sG%s.pth" % (path_str, f0_str, sr2))
+        if if_pretrained_generator_exist
+        else "",
+        ("pretrained%s/%sD%s.pth" % (path_str, f0_str, sr2))
+        if if_pretrained_discriminator_exist
+        else "",
     )
 
 
 def change_f0(if_f0_3, sr2, version19):  # f0method8,pretrained_G14,pretrained_D15
     path_str = "" if version19 == "v1" else "_v2"
-    if_pretrained_generator_exist = os.access("pretrained%s/f0G%s.pth" % (path_str, sr2), os.F_OK)
-    if_pretrained_discriminator_exist = os.access("pretrained%s/f0D%s.pth" % (path_str, sr2), os.F_OK)
-    if (if_pretrained_generator_exist == False):
-        print("pretrained%s/f0G%s.pth" % (path_str, sr2), "not exist, will not use pretrained model")
-    if (if_pretrained_discriminator_exist == False):
-        print("pretrained%s/f0D%s.pth" % (path_str, sr2), "not exist, will not use pretrained model")
+    if_pretrained_generator_exist = os.access(
+        "pretrained%s/f0G%s.pth" % (path_str, sr2), os.F_OK
+    )
+    if_pretrained_discriminator_exist = os.access(
+        "pretrained%s/f0D%s.pth" % (path_str, sr2), os.F_OK
+    )
+    if if_pretrained_generator_exist == False:
+        print(
+            "pretrained%s/f0G%s.pth" % (path_str, sr2),
+            "not exist, will not use pretrained model",
+        )
+    if if_pretrained_discriminator_exist == False:
+        print(
+            "pretrained%s/f0D%s.pth" % (path_str, sr2),
+            "not exist, will not use pretrained model",
+        )
     if if_f0_3:
         return (
             {"visible": True, "__type__": "update"},
-            "pretrained%s/f0G%s.pth" % (path_str, sr2) if if_pretrained_generator_exist else "",
-            "pretrained%s/f0D%s.pth" % (path_str, sr2) if if_pretrained_discriminator_exist else "",
+            "pretrained%s/f0G%s.pth" % (path_str, sr2)
+            if if_pretrained_generator_exist
+            else "",
+            "pretrained%s/f0D%s.pth" % (path_str, sr2)
+            if if_pretrained_discriminator_exist
+            else "",
         )
     return (
         {"visible": False, "__type__": "update"},
-        ("pretrained%s/G%s.pth" % (path_str, sr2)) if if_pretrained_generator_exist else "",
-        ("pretrained%s/D%s.pth" % (path_str, sr2)) if if_pretrained_discriminator_exist else "",
+        ("pretrained%s/G%s.pth" % (path_str, sr2))
+        if if_pretrained_generator_exist
+        else "",
+        ("pretrained%s/D%s.pth" % (path_str, sr2))
+        if if_pretrained_discriminator_exist
+        else "",
     )
 
 
@@ -721,6 +799,7 @@ def set_log_interval(exp_dir, batch_size12):
                 log_interval += 1
     return log_interval
 
+
 # but3.click(click_train,[exp_dir1,sr2,if_f0_3,save_epoch10,total_epoch11,batch_size12,if_save_latest13,pretrained_G14,pretrained_D15,gpus16])
 def click_train(
     exp_dir1,
@@ -738,7 +817,7 @@ def click_train(
     if_save_every_weights18,
     version19,
 ):
-    CSVutil('csvdb/stop.csv', 'w+', 'formanting', False)
+    CSVutil("csvdb/stop.csv", "w+", "formanting", False)
     # 生成filelist
     exp_dir = "%s/logs/%s" % (now_dir, exp_dir1)
     os.makedirs(exp_dir, exist_ok=True)
@@ -748,9 +827,9 @@ def click_train(
         if version19 == "v1"
         else "%s/3_feature768" % (exp_dir)
     )
-    
+
     log_interval = set_log_interval(exp_dir, batch_size12)
-    
+
     if if_f0_3:
         f0_dir = "%s/2a_f0" % (exp_dir)
         f0nsf_dir = "%s/2b-f0nsf" % (exp_dir)
@@ -862,7 +941,11 @@ def click_train(
     global PID
     PID = p.pid
     p.wait()
-    return ("训练结束, 您可查看控制台训练日志或实验文件夹下的train.log", {"visible": False, "__type__": "update"}, {"visible": True, "__type__": "update"})
+    return (
+        "训练结束, 您可查看控制台训练日志或实验文件夹下的train.log",
+        {"visible": False, "__type__": "update"},
+        {"visible": True, "__type__": "update"},
+    )
 
 
 # but4.click(train_index, [exp_dir1], info3)
@@ -944,7 +1027,7 @@ def train1key(
     if_cache_gpu17,
     if_save_every_weights18,
     version19,
-    echl
+    echl,
 ):
     infos = []
 
@@ -985,7 +1068,7 @@ def train1key(
             model_log_dir,
             np7,
             f0method8,
-            echl
+            echl,
         )
         yield get_info_str(cmd)
         p = Popen(cmd, shell=True, cwd=now_dir)
@@ -1081,7 +1164,7 @@ def train1key(
     if gpus16:
         cmd = (
             config.python_cmd
-            +" train_nsf_sim_cache_sid_load_pretrain.py -e %s -sr %s -f0 %s -bs %s -g %s -te %s -se %s %s %s -l %s -c %s -sw %s -v %s"
+            + " train_nsf_sim_cache_sid_load_pretrain.py -e %s -sr %s -f0 %s -bs %s -g %s -te %s -se %s %s %s -l %s -c %s -sw %s -v %s"
             % (
                 exp_dir1,
                 sr2,
@@ -1164,8 +1247,9 @@ def train1key(
 
 
 def whethercrepeornah(radio):
-    mango = True if radio == 'mangio-crepe' or radio == 'mangio-crepe-tiny' else False
-    return ({"visible": mango, "__type__": "update"})
+    mango = True if radio == "mangio-crepe" or radio == "mangio-crepe-tiny" else False
+    return {"visible": mango, "__type__": "update"}
+
 
 #                    ckpt_path2.change(change_info_,[ckpt_path2],[sr__,if_f0__])
 def change_info_(ckpt_path):
@@ -1193,7 +1277,9 @@ from lib.infer_pack.models_onnx import SynthesizerTrnMsNSFsidM
 def export_onnx(ModelPath, ExportedPath, MoeVS=True):
     cpt = torch.load(ModelPath, map_location="cpu")
     cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]  # n_spk
-    hidden_channels = 256 if cpt.get("version","v1")=="v1"else 768#cpt["config"][-2]  # hidden_channels，为768Vec做准备
+    hidden_channels = (
+        256 if cpt.get("version", "v1") == "v1" else 768
+    )  # cpt["config"][-2]  # hidden_channels，为768Vec做准备
 
     test_phone = torch.rand(1, 200, hidden_channels)  # hidden unit
     test_phone_lengths = torch.tensor([200]).long()  # hidden unit 长度（貌似没啥用）
@@ -1204,9 +1290,8 @@ def export_onnx(ModelPath, ExportedPath, MoeVS=True):
 
     device = "cpu"  # 导出时设备（不影响使用模型）
 
-
     net_g = SynthesizerTrnMsNSFsidM(
-        *cpt["config"], is_half=False,version=cpt.get("version","v1")
+        *cpt["config"], is_half=False, version=cpt.get("version", "v1")
     )  # fp32导出（C++要支持fp16必须手动将内存重新排列所以暂时不用fp16）
     net_g.load_state_dict(cpt["weight"], strict=False)
     input_names = ["phone", "phone_lengths", "pitch", "pitchf", "ds", "rnd"]
@@ -1239,95 +1324,109 @@ def export_onnx(ModelPath, ExportedPath, MoeVS=True):
     )
     return "Finished"
 
-#region RVC WebUI App
+
+# region RVC WebUI App
+
 
 def get_presets():
     data = None
-    with open('../inference-presets.json', 'r') as file:
+    with open("../inference-presets.json", "r") as file:
         data = json.load(file)
     preset_names = []
-    for preset in data['presets']:
-        preset_names.append(preset['name'])
-    
+    for preset in data["presets"]:
+        preset_names.append(preset["name"])
+
     return preset_names
 
+
 def change_choices2():
-    audio_files=[]
+    audio_files = []
     for filename in os.listdir("./audios"):
-        if filename.endswith(('.wav','.mp3','.ogg','.flac','.m4a','.aac','.mp4')):
-            audio_files.append(os.path.join('./audios',filename).replace('\\', '/'))
-    return {"choices": sorted(audio_files), "__type__": "update"}, {"__type__": "update"}
-    
-audio_files=[]
+        if filename.endswith((".wav", ".mp3", ".ogg", ".flac", ".m4a", ".aac", ".mp4")):
+            audio_files.append(os.path.join("./audios", filename).replace("\\", "/"))
+    return {"choices": sorted(audio_files), "__type__": "update"}, {
+        "__type__": "update"
+    }
+
+
+audio_files = []
 for filename in os.listdir("./audios"):
-    if filename.endswith(('.wav','.mp3','.ogg','.flac','.m4a','.aac','.mp4')):
-        audio_files.append(os.path.join('./audios',filename).replace('\\', '/'))
-        
+    if filename.endswith((".wav", ".mp3", ".ogg", ".flac", ".m4a", ".aac", ".mp4")):
+        audio_files.append(os.path.join("./audios", filename).replace("\\", "/"))
+
+
 def get_index():
-    if check_for_name() != '':
-        chosen_model=sorted(names)[0].split(".")[0]
-        logs_path="./logs/"+chosen_model
+    if check_for_name() != "":
+        chosen_model = sorted(names)[0].split(".")[0]
+        logs_path = "./logs/" + chosen_model
         if os.path.exists(logs_path):
             for file in os.listdir(logs_path):
                 if file.endswith(".index"):
                     return os.path.join(logs_path, file)
-            return ''
+            return ""
         else:
-            return ''
-        
+            return ""
+
+
 def get_indexes():
-    indexes_list=[]
+    indexes_list = []
     for dirpath, dirnames, filenames in os.walk("./logs/"):
         for filename in filenames:
             if filename.endswith(".index"):
-                indexes_list.append(os.path.join(dirpath,filename))
+                indexes_list.append(os.path.join(dirpath, filename))
     if len(indexes_list) > 0:
         return indexes_list
     else:
-        return ''
-        
+        return ""
+
+
 def get_name():
     if len(audio_files) > 0:
         return sorted(audio_files)[0]
     else:
-        return ''
-        
+        return ""
+
+
 def save_to_wav(record_button):
     if record_button is None:
         pass
     else:
-        path_to_file=record_button
-        new_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+'.wav'
-        new_path='./audios/'+new_name
-        shutil.move(path_to_file,new_path)
+        path_to_file = record_button
+        new_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".wav"
+        new_path = "./audios/" + new_name
+        shutil.move(path_to_file, new_path)
         return new_path
-    
+
+
 def save_to_wav2(dropbox):
-    file_path=dropbox.name
-    shutil.move(file_path,'./audios')
-    return os.path.join('./audios',os.path.basename(file_path))
-    
+    file_path = dropbox.name
+    shutil.move(file_path, "./audios")
+    return os.path.join("./audios", os.path.basename(file_path))
+
+
 def match_index(sid0):
-    folder=sid0.split(".")[0]
-    parent_dir="./logs/"+folder
+    folder = sid0.split(".")[0]
+    parent_dir = "./logs/" + folder
     if os.path.exists(parent_dir):
         for filename in os.listdir(parent_dir):
             if filename.endswith(".index"):
-                index_path=os.path.join(parent_dir,filename)
+                index_path = os.path.join(parent_dir, filename)
                 return index_path
     else:
-        return ''
-                
+        return ""
+
+
 def check_for_name():
     if len(names) > 0:
         return sorted(names)[0]
     else:
-        return ''
-            
+        return ""
+
+
 def download_from_url(url, model):
-    if url == '':
+    if url == "":
         return "URL cannot be left empty."
-    if model =='':
+    if model == "":
         return "You need to name your model. For example: My-Model"
     url = url.strip()
     zip_dirs = ["zips", "unzips"]
@@ -1336,148 +1435,180 @@ def download_from_url(url, model):
             shutil.rmtree(directory)
     os.makedirs("zips", exist_ok=True)
     os.makedirs("unzips", exist_ok=True)
-    zipfile = model + '.zip'
-    zipfile_path = './zips/' + zipfile
+    zipfile = model + ".zip"
+    zipfile_path = "./zips/" + zipfile
     try:
         if "drive.google.com" in url:
             subprocess.run(["gdown", url, "--fuzzy", "-O", zipfile_path])
         elif "mega.nz" in url:
             m = Mega()
-            m.download_url(url, './zips')
+            m.download_url(url, "./zips")
         else:
             subprocess.run(["wget", url, "-O", zipfile_path])
         for filename in os.listdir("./zips"):
             if filename.endswith(".zip"):
-                zipfile_path = os.path.join("./zips/",filename)
-                shutil.unpack_archive(zipfile_path, "./unzips", 'zip')
+                zipfile_path = os.path.join("./zips/", filename)
+                shutil.unpack_archive(zipfile_path, "./unzips", "zip")
             else:
                 return "No zipfile found."
-        for root, dirs, files in os.walk('./unzips'):
+        for root, dirs, files in os.walk("./unzips"):
             for file in files:
                 file_path = os.path.join(root, file)
                 if file.endswith(".index"):
-                    os.mkdir(f'./logs/{model}')
-                    shutil.copy2(file_path,f'./logs/{model}')
+                    os.mkdir(f"./logs/{model}")
+                    shutil.copy2(file_path, f"./logs/{model}")
                 elif "G_" not in file and "D_" not in file and file.endswith(".pth"):
-                    shutil.copy(file_path,f'./weights/{model}.pth')
+                    shutil.copy(file_path, f"./weights/{model}.pth")
         shutil.rmtree("zips")
         shutil.rmtree("unzips")
         return "Success."
     except:
         return "There's been an error."
+
+
 def success_message(face):
-    return f'{face.name} has been uploaded.', 'None'
+    return f"{face.name} has been uploaded.", "None"
+
+
 def mouth(size, face, voice, faces):
-    if size == 'Half':
+    if size == "Half":
         size = 2
     else:
         size = 1
-    if faces == 'None':
+    if faces == "None":
         character = face.name
     else:
-        if faces == 'Ben Shapiro':
-            character = '/content/wav2lip-HD/inputs/ben-shapiro-10.mp4'
-        elif faces == 'Andrew Tate':
-            character = '/content/wav2lip-HD/inputs/tate-7.mp4'
-    command = "python inference.py " \
-            "--checkpoint_path checkpoints/wav2lip.pth " \
-            f"--face {character} " \
-            f"--audio {voice} " \
-            "--pads 0 20 0 0 " \
-            "--outfile /content/wav2lip-HD/outputs/result.mp4 " \
-            "--fps 24 " \
-            f"--resize_factor {size}"
-    process = subprocess.Popen(command, shell=True, cwd='/content/wav2lip-HD/Wav2Lip-master')
+        if faces == "Ben Shapiro":
+            character = "/content/wav2lip-HD/inputs/ben-shapiro-10.mp4"
+        elif faces == "Andrew Tate":
+            character = "/content/wav2lip-HD/inputs/tate-7.mp4"
+    command = (
+        "python inference.py "
+        "--checkpoint_path checkpoints/wav2lip.pth "
+        f"--face {character} "
+        f"--audio {voice} "
+        "--pads 0 20 0 0 "
+        "--outfile /content/wav2lip-HD/outputs/result.mp4 "
+        "--fps 24 "
+        f"--resize_factor {size}"
+    )
+    process = subprocess.Popen(
+        command, shell=True, cwd="/content/wav2lip-HD/Wav2Lip-master"
+    )
     stdout, stderr = process.communicate()
-    return '/content/wav2lip-HD/outputs/result.mp4', 'Animation completed.'
-eleven_voices = ['Adam','Antoni','Josh','Arnold','Sam','Bella','Rachel','Domi','Elli']
-eleven_voices_ids=['pNInz6obpgDQGcFmaJgB','ErXwobaYiN019PkySvjV','TxGEqnHWrfWFTfGW9XjX','VR6AewLTigWG4xSOukaG','yoZ06aMxZJJ28mfd3POQ','EXAVITQu4vr4xnSDxMaL','21m00Tcm4TlvDq8ikWAM','AZnzlk1XvdvUeBnXmlld','MF3mGyEYCl7XYWbV9V6O']
+    return "/content/wav2lip-HD/outputs/result.mp4", "Animation completed."
+
+
+eleven_voices = [
+    "Adam",
+    "Antoni",
+    "Josh",
+    "Arnold",
+    "Sam",
+    "Bella",
+    "Rachel",
+    "Domi",
+    "Elli",
+]
+eleven_voices_ids = [
+    "pNInz6obpgDQGcFmaJgB",
+    "ErXwobaYiN019PkySvjV",
+    "TxGEqnHWrfWFTfGW9XjX",
+    "VR6AewLTigWG4xSOukaG",
+    "yoZ06aMxZJJ28mfd3POQ",
+    "EXAVITQu4vr4xnSDxMaL",
+    "21m00Tcm4TlvDq8ikWAM",
+    "AZnzlk1XvdvUeBnXmlld",
+    "MF3mGyEYCl7XYWbV9V6O",
+]
 chosen_voice = dict(zip(eleven_voices, eleven_voices_ids))
 
-def stoptraining(mim): 
+
+def stoptraining(mim):
     if int(mim) == 1:
         try:
-            CSVutil('csvdb/stop.csv', 'w+', 'stop', 'True')
+            CSVutil("csvdb/stop.csv", "w+", "stop", "True")
             os.kill(PID, signal.SIGTERM)
         except Exception as e:
             print(f"Couldn't click due to {e}")
     return (
-        {"visible": False, "__type__": "update"}, 
+        {"visible": False, "__type__": "update"},
         {"visible": True, "__type__": "update"},
     )
 
 
 def elevenTTS(xiapi, text, id, lang):
-    if xiapi!= '' and id !='': 
+    if xiapi != "" and id != "":
         choice = chosen_voice[id]
         CHUNK_SIZE = 1024
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{choice}"
         headers = {
-        "Accept": "audio/mpeg",
-        "Content-Type": "application/json",
-        "xi-api-key": xiapi
+            "Accept": "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": xiapi,
         }
-        if lang == 'en':
+        if lang == "en":
             data = {
-            "text": text,
-            "model_id": "eleven_monolingual_v1",
-            "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.5
-            }
+                "text": text,
+                "model_id": "eleven_monolingual_v1",
+                "voice_settings": {"stability": 0.5, "similarity_boost": 0.5},
             }
         else:
             data = {
-            "text": text,
-            "model_id": "eleven_multilingual_v1",
-            "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.5
-            }
+                "text": text,
+                "model_id": "eleven_multilingual_v1",
+                "voice_settings": {"stability": 0.5, "similarity_boost": 0.5},
             }
 
         response = requests.post(url, json=data, headers=headers)
-        with open('./temp_eleven.mp3', 'wb') as f:
-          for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-              if chunk:
-                  f.write(chunk)
-        aud_path = save_to_wav('./temp_eleven.mp3')
+        with open("./temp_eleven.mp3", "wb") as f:
+            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                if chunk:
+                    f.write(chunk)
+        aud_path = save_to_wav("./temp_eleven.mp3")
         return aud_path, aud_path
     else:
         tts = gTTS(text, lang=lang)
-        tts.save('./temp_gTTS.mp3')
-        aud_path = save_to_wav('./temp_gTTS.mp3')
+        tts.save("./temp_gTTS.mp3")
+        aud_path = save_to_wav("./temp_gTTS.mp3")
         return aud_path, aud_path
 
+
 def upload_to_dataset(files, dir):
-    if dir == '':
-        dir = './dataset'
+    if dir == "":
+        dir = "./dataset"
     if not os.path.exists(dir):
         os.makedirs(dir)
     count = 0
     for file in files:
-        path=file.name
-        shutil.copy2(path,dir)
+        path = file.name
+        shutil.copy2(path, dir)
         count += 1
-    return f' {count} files uploaded to {dir}.'     
-    
+    return f" {count} files uploaded to {dir}."
+
+
 def zip_downloader(model):
-    if not os.path.exists(f'./weights/{model}.pth'):
-        return {"__type__": "update"}, f'Make sure the Voice Name is correct. I could not find {model}.pth'
+    if not os.path.exists(f"./weights/{model}.pth"):
+        return {
+            "__type__": "update"
+        }, f"Make sure the Voice Name is correct. I could not find {model}.pth"
     index_found = False
-    for file in os.listdir(f'./logs/{model}'):
-        if file.endswith('.index') and 'added' in file:
+    for file in os.listdir(f"./logs/{model}"):
+        if file.endswith(".index") and "added" in file:
             log_file = file
             index_found = True
     if index_found:
-        return [f'./weights/{model}.pth', f'./logs/{model}/{log_file}'], "Done"
+        return [f"./weights/{model}.pth", f"./logs/{model}/{log_file}"], "Done"
     else:
-        return f'./weights/{model}.pth', "Could not find Index file."
+        return f"./weights/{model}.pth", "Could not find Index file."
 
-with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
+
+with gr.Blocks(theme=gr.themes.Base(), title="Mangio-RVC-Web 💻") as app:
     with gr.Tabs():
         with gr.TabItem("Inference"):
-            gr.HTML("<h1> Easy GUI v2 (rejekts) - adapted to Mangio-RVC-Fork 💻 [With extra features and fixes by kalomaze & alexlnkp]</h1>")
+            gr.HTML(
+                "<h1> Easy GUI v2 (rejekts) - adapted to Mangio-RVC-Fork 💻 [With extra features and fixes by kalomaze & alexlnkp]</h1>"
+            )
 
             # Inference Preset Row
             # with gr.Row():
@@ -1489,12 +1620,19 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
 
             # Other RVC stuff
             with gr.Row():
-                sid0 = gr.Dropdown(label="1.Choose your Model.", choices=sorted(names), value=check_for_name())
+                sid0 = gr.Dropdown(
+                    label="1.Choose your Model.",
+                    choices=sorted(names),
+                    value=check_for_name(),
+                )
                 refresh_button = gr.Button("Refresh", variant="primary")
-                if check_for_name() != '':
+                if check_for_name() != "":
                     get_vc(sorted(names)[0])
-                vc_transform0 = gr.Number(label="Optional: You can change the pitch here or leave it at 0.", value=0)
-                #clean_button = gr.Button(i18n("卸载音色省显存"), variant="primary")
+                vc_transform0 = gr.Number(
+                    label="Optional: You can change the pitch here or leave it at 0.",
+                    value=0,
+                )
+                # clean_button = gr.Button(i18n("卸载音色省显存"), variant="primary")
                 spk_item = gr.Slider(
                     minimum=0,
                     maximum=2333,
@@ -1504,7 +1642,7 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                     visible=False,
                     interactive=True,
                 )
-                #clean_button.click(fn=clean, inputs=[], outputs=[sid0])
+                # clean_button.click(fn=clean, inputs=[], outputs=[sid0])
                 sid0.change(
                     fn=get_vc,
                     inputs=[sid0],
@@ -1514,44 +1652,103 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
             with gr.Row():
                 with gr.Column():
                     with gr.Row():
-                        dropbox = gr.File(label="Drop your audio here & hit the Reload button.")
+                        dropbox = gr.File(
+                            label="Drop your audio here & hit the Reload button."
+                        )
                     with gr.Row():
-                        record_button=gr.Audio(source="microphone", label="OR Record audio.", type="filepath")
+                        record_button = gr.Audio(
+                            source="microphone",
+                            label="OR Record audio.",
+                            type="filepath",
+                        )
                     with gr.Row():
                         input_audio0 = gr.Dropdown(
                             label="2.Choose your audio.",
                             value="./audios/someguy.mp3",
-                            choices=audio_files
-                            )
-                        dropbox.upload(fn=save_to_wav2, inputs=[dropbox], outputs=[input_audio0])
-                        dropbox.upload(fn=change_choices2, inputs=[], outputs=[input_audio0])
-                        refresh_button2 = gr.Button("Refresh", variant="primary", size='sm')
-                        record_button.change(fn=save_to_wav, inputs=[record_button], outputs=[input_audio0])
-                        record_button.change(fn=change_choices2, inputs=[], outputs=[input_audio0])
+                            choices=audio_files,
+                        )
+                        dropbox.upload(
+                            fn=save_to_wav2, inputs=[dropbox], outputs=[input_audio0]
+                        )
+                        dropbox.upload(
+                            fn=change_choices2, inputs=[], outputs=[input_audio0]
+                        )
+                        refresh_button2 = gr.Button(
+                            "Refresh", variant="primary", size="sm"
+                        )
+                        record_button.change(
+                            fn=save_to_wav,
+                            inputs=[record_button],
+                            outputs=[input_audio0],
+                        )
+                        record_button.change(
+                            fn=change_choices2, inputs=[], outputs=[input_audio0]
+                        )
                     with gr.Row():
-                        with gr.Accordion('Text To Speech', open=False):
+                        with gr.Accordion("Text To Speech", open=False):
                             with gr.Column():
-                                lang = gr.Radio(label='Chinese & Japanese do not work with ElevenLabs currently.',choices=['en','es','fr','pt','zh-CN','de','hi','ja'], value='en')
-                                api_box = gr.Textbox(label="Enter your API Key for ElevenLabs, or leave empty to use GoogleTTS", value='')
-                                elevenid=gr.Dropdown(label="Voice:", choices=eleven_voices)
+                                lang = gr.Radio(
+                                    label="Chinese & Japanese do not work with ElevenLabs currently.",
+                                    choices=[
+                                        "en",
+                                        "es",
+                                        "fr",
+                                        "pt",
+                                        "zh-CN",
+                                        "de",
+                                        "hi",
+                                        "ja",
+                                    ],
+                                    value="en",
+                                )
+                                api_box = gr.Textbox(
+                                    label="Enter your API Key for ElevenLabs, or leave empty to use GoogleTTS",
+                                    value="",
+                                )
+                                elevenid = gr.Dropdown(
+                                    label="Voice:", choices=eleven_voices
+                                )
                             with gr.Column():
-                                tfs = gr.Textbox(label="Input your Text", interactive=True, value="This is a test.")
+                                tfs = gr.Textbox(
+                                    label="Input your Text",
+                                    interactive=True,
+                                    value="This is a test.",
+                                )
                                 tts_button = gr.Button(value="Speak")
-                                tts_button.click(fn=elevenTTS, inputs=[api_box,tfs, elevenid, lang], outputs=[record_button, input_audio0])
+                                tts_button.click(
+                                    fn=elevenTTS,
+                                    inputs=[api_box, tfs, elevenid, lang],
+                                    outputs=[record_button, input_audio0],
+                                )
                     with gr.Row():
-                        with gr.Accordion('Wav2Lip', open=False):
+                        with gr.Accordion("Wav2Lip", open=False):
                             with gr.Row():
-                                size = gr.Radio(label='Resolution:',choices=['Half','Full'])
-                                face = gr.UploadButton("Upload A Character",type='file')
-                                faces = gr.Dropdown(label="OR Choose one:", choices=['None','Ben Shapiro','Andrew Tate'])
+                                size = gr.Radio(
+                                    label="Resolution:", choices=["Half", "Full"]
+                                )
+                                face = gr.UploadButton(
+                                    "Upload A Character", type="file"
+                                )
+                                faces = gr.Dropdown(
+                                    label="OR Choose one:",
+                                    choices=["None", "Ben Shapiro", "Andrew Tate"],
+                                )
                             with gr.Row():
-                                preview = gr.Textbox(label="Status:",interactive=False)
-                                face.upload(fn=success_message,inputs=[face], outputs=[preview, faces])
+                                preview = gr.Textbox(label="Status:", interactive=False)
+                                face.upload(
+                                    fn=success_message,
+                                    inputs=[face],
+                                    outputs=[preview, faces],
+                                )
                             with gr.Row():
-                                animation = gr.Video(type='filepath')
-                                refresh_button2.click(fn=change_choices2, inputs=[], outputs=[input_audio0, animation])
+                                animation = gr.Video(type="filepath")
+                                refresh_button2.click(
+                                    fn=change_choices2,
+                                    inputs=[],
+                                    outputs=[input_audio0, animation],
+                                )
                             with gr.Row():
-                                animate_button = gr.Button('Animate')
+                                animate_button = gr.Button("Animate")
 
                 with gr.Column():
                     with gr.Accordion("Index Settings", open=False):
@@ -1560,11 +1757,13 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             choices=get_indexes(),
                             value=get_index(),
                             interactive=True,
-                            )
-                        sid0.change(fn=match_index, inputs=[sid0],outputs=[file_index1])
+                        )
+                        sid0.change(
+                            fn=match_index, inputs=[sid0], outputs=[file_index1]
+                        )
                         refresh_button.click(
                             fn=change_choices, inputs=[], outputs=[sid0, file_index1]
-                            )
+                        )
                         # file_big_npy1 = gr.Textbox(
                         #     label=i18n("特征文件路径"),
                         #     value="E:\\codes\py39\\vits_vc_gpu_train\\logs\\mi-test-1key\\total_fea.npy",
@@ -1576,21 +1775,34 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             label=i18n("检索特征占比"),
                             value=0.66,
                             interactive=True,
-                            )
+                        )
                     vc_output2 = gr.Audio(
                         label="Output Audio (Click on the Three Dots in the Right Corner to Download)",
-                        type='filepath',
+                        type="filepath",
                         interactive=False,
                     )
-                    animate_button.click(fn=mouth, inputs=[size, face, vc_output2, faces], outputs=[animation, preview])
+                    animate_button.click(
+                        fn=mouth,
+                        inputs=[size, face, vc_output2, faces],
+                        outputs=[animation, preview],
+                    )
                     with gr.Accordion("Advanced Settings", open=False):
                         f0method0 = gr.Radio(
                             label="Optional: Change the Pitch Extraction Algorithm.\nExtraction methods are sorted from 'worst quality' to 'best quality'.\nmangio-crepe may or may not be better than rmvpe in cases where 'smoothness' is more important, but rmvpe is the best overall.",
-                            choices=["pm", "dio", "crepe-tiny", "mangio-crepe-tiny", "crepe", "harvest", "mangio-crepe", "rmvpe"], # Fork Feature. Add Crepe-Tiny
+                            choices=[
+                                "pm",
+                                "dio",
+                                "crepe-tiny",
+                                "mangio-crepe-tiny",
+                                "crepe",
+                                "harvest",
+                                "mangio-crepe",
+                                "rmvpe",
+                            ],  # Fork Feature. Add Crepe-Tiny
                             value="rmvpe",
                             interactive=True,
                         )
-                        
+
                         crepe_hop_length = gr.Slider(
                             minimum=1,
                             maximum=512,
@@ -1599,8 +1811,12 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             value=120,
                             interactive=True,
                             visible=False,
-                            )
-                        f0method0.change(fn=whethercrepeornah, inputs=[f0method0], outputs=[crepe_hop_length])
+                        )
+                        f0method0.change(
+                            fn=whethercrepeornah,
+                            inputs=[f0method0],
+                            outputs=[crepe_hop_length],
+                        )
                         filter_radius0 = gr.Slider(
                             minimum=0,
                             maximum=7,
@@ -1608,7 +1824,7 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             value=3,
                             step=1,
                             interactive=True,
-                            )
+                        )
                         resample_sr0 = gr.Slider(
                             minimum=0,
                             maximum=48000,
@@ -1616,23 +1832,25 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             value=0,
                             step=1,
                             interactive=True,
-                            visible=False
-                            )
+                            visible=False,
+                        )
                         rms_mix_rate0 = gr.Slider(
                             minimum=0,
                             maximum=1,
                             label=i18n("输入源音量包络替换输出音量包络融合比例，越靠近1越使用输出包络"),
                             value=0.21,
                             interactive=True,
-                            )
+                        )
                         protect0 = gr.Slider(
                             minimum=0,
                             maximum=0.5,
-                            label=i18n("保护清辅音和呼吸声，防止电音撕裂等artifact，拉满0.5不开启，调低加大保护力度但可能降低索引效果"),
+                            label=i18n(
+                                "保护清辅音和呼吸声，防止电音撕裂等artifact，拉满0.5不开启，调低加大保护力度但可能降低索引效果"
+                            ),
                             value=0.33,
                             step=0.01,
                             interactive=True,
-                            )
+                        )
                         formanting = gr.Checkbox(
                             value=bool(DoFormant),
                             label="[EXPERIMENTAL] Formant shift inference audio",
@@ -1640,31 +1858,31 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             interactive=True,
                             visible=True,
                         )
-                        
+
                         formant_preset = gr.Dropdown(
-                            value='',
+                            value="",
                             choices=get_fshift_presets(),
                             label="browse presets for formanting",
                             visible=bool(DoFormant),
                         )
                         formant_refresh_button = gr.Button(
-                            value='\U0001f504',
+                            value="\U0001f504",
                             visible=bool(DoFormant),
-                            variant='primary',
+                            variant="primary",
                         )
-                        #formant_refresh_button = ToolButton( elem_id='1')
-                        #create_refresh_button(formant_preset, lambda: {"choices": formant_preset}, "refresh_list_shiftpresets")
-                        
+                        # formant_refresh_button = ToolButton( elem_id='1')
+                        # create_refresh_button(formant_preset, lambda: {"choices": formant_preset}, "refresh_list_shiftpresets")
+
                         qfrency = gr.Slider(
-                                value=Quefrency,
-                                info="Default value is 1.0",
-                                label="Quefrency for formant shifting",
-                                minimum=0.0,
-                                maximum=16.0,
-                                step=0.1,
-                                visible=bool(DoFormant),
-                                interactive=True,
-                            )
+                            value=Quefrency,
+                            info="Default value is 1.0",
+                            label="Quefrency for formant shifting",
+                            minimum=0.0,
+                            maximum=16.0,
+                            step=0.1,
+                            visible=bool(DoFormant),
+                            interactive=True,
+                        )
                         tmbre = gr.Slider(
                             value=Timbre,
                             info="Default value is 1.0",
@@ -1675,16 +1893,50 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             visible=bool(DoFormant),
                             interactive=True,
                         )
-                        
-                        formant_preset.change(fn=preset_apply, inputs=[formant_preset, qfrency, tmbre], outputs=[qfrency, tmbre])
-                        frmntbut = gr.Button("Apply", variant="primary", visible=bool(DoFormant))
-                        formanting.change(fn=formant_enabled,inputs=[formanting,qfrency,tmbre,frmntbut,formant_preset,formant_refresh_button],outputs=[formanting,qfrency,tmbre,frmntbut,formant_preset,formant_refresh_button])
-                        frmntbut.click(fn=formant_apply,inputs=[qfrency, tmbre], outputs=[qfrency, tmbre])
-                        formant_refresh_button.click(fn=update_fshift_presets,inputs=[formant_preset, qfrency, tmbre],outputs=[formant_preset, qfrency, tmbre])
+
+                        formant_preset.change(
+                            fn=preset_apply,
+                            inputs=[formant_preset, qfrency, tmbre],
+                            outputs=[qfrency, tmbre],
+                        )
+                        frmntbut = gr.Button(
+                            "Apply", variant="primary", visible=bool(DoFormant)
+                        )
+                        formanting.change(
+                            fn=formant_enabled,
+                            inputs=[
+                                formanting,
+                                qfrency,
+                                tmbre,
+                                frmntbut,
+                                formant_preset,
+                                formant_refresh_button,
+                            ],
+                            outputs=[
+                                formanting,
+                                qfrency,
+                                tmbre,
+                                frmntbut,
+                                formant_preset,
+                                formant_refresh_button,
+                            ],
+                        )
+                        frmntbut.click(
+                            fn=formant_apply,
+                            inputs=[qfrency, tmbre],
+                            outputs=[qfrency, tmbre],
+                        )
+                        formant_refresh_button.click(
+                            fn=update_fshift_presets,
+                            inputs=[formant_preset, qfrency, tmbre],
+                            outputs=[formant_preset, qfrency, tmbre],
+                        )
             with gr.Row():
                 vc_output1 = gr.Textbox("")
-                f0_file = gr.File(label=i18n("F0曲线文件, 可选, 一行一个音高, 代替默认F0及升降调"), visible=False)
-                
+                f0_file = gr.File(
+                    label=i18n("F0曲线文件, 可选, 一行一个音高, 代替默认F0及升降调"), visible=False
+                )
+
                 but0.click(
                     vc_single,
                     [
@@ -1701,12 +1953,12 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                         resample_sr0,
                         rms_mix_rate0,
                         protect0,
-                        crepe_hop_length
+                        crepe_hop_length,
                     ],
                     [vc_output1, vc_output2],
                 )
-                        
-            with gr.Accordion("Batch Conversion",open=False):
+
+            with gr.Accordion("Batch Conversion", open=False):
                 with gr.Row():
                     with gr.Column():
                         vc_transform1 = gr.Number(
@@ -1825,23 +2077,25 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                     but1.click(fn=lambda: easy_uploader.clear())
         with gr.TabItem("Download Model"):
             with gr.Row():
-                url=gr.Textbox(label="Enter the URL to the Model:")
+                url = gr.Textbox(label="Enter the URL to the Model:")
             with gr.Row():
                 model = gr.Textbox(label="Name your model:")
-                download_button=gr.Button("Download")
+                download_button = gr.Button("Download")
             with gr.Row():
-                status_bar=gr.Textbox(label="")
-                download_button.click(fn=download_from_url, inputs=[url, model], outputs=[status_bar])
+                status_bar = gr.Textbox(label="")
+                download_button.click(
+                    fn=download_from_url, inputs=[url, model], outputs=[status_bar]
+                )
             with gr.Row():
                 gr.Markdown(
-                """
+                    """
                 Original RVC:https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI
                 Mangio's RVC Fork:https://github.com/Mangio621/Mangio-RVC-Fork
                 ❤️ If you like the EasyGUI, help me keep it.❤️ 
                 https://paypal.me/lesantillan
                 """
                 )
-                
+
         def has_two_files_in_pretrained_folder():
             pretrained_folder = "./pretrained/"
             if not os.path.exists(pretrained_folder):
@@ -1851,8 +2105,10 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
             num_files = len(files_in_folder)
             return num_files >= 2
 
-        if has_two_files_in_pretrained_folder():    
-            print("Pretrained weights are downloaded. Training tab enabled!\n-------------------------------")       
+        if has_two_files_in_pretrained_folder():
+            print(
+                "Pretrained weights are downloaded. Training tab enabled!\n-------------------------------"
+            )
             with gr.TabItem("Train", visible=False):
                 with gr.Row():
                     with gr.Column():
@@ -1862,14 +2118,14 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             choices=["40k", "48k"],
                             value="40k",
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                         if_f0_3 = gr.Radio(
                             label=i18n("模型是否带音高指导(唱歌一定要, 语音可以不要)"),
                             choices=[True, False],
                             value=True,
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
                         version19 = gr.Radio(
                             label="RVC version",
@@ -1885,15 +2141,30 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             label="# of CPUs for data processing (Leave as it is)",
                             value=config.n_cpu,
                             interactive=True,
-                            visible=True
+                            visible=True,
                         )
-                        trainset_dir4 = gr.Textbox(label="Path to your dataset (audios, not zip):", value="./dataset")
-                        easy_uploader = gr.Files(label='OR Drop your audios here. They will be uploaded in your dataset path above.',file_types=['audio'])
+                        trainset_dir4 = gr.Textbox(
+                            label="Path to your dataset (audios, not zip):",
+                            value="./dataset",
+                        )
+                        easy_uploader = gr.Files(
+                            label="OR Drop your audios here. They will be uploaded in your dataset path above.",
+                            file_types=["audio"],
+                        )
                         but1 = gr.Button("1. Process The Dataset", variant="primary")
-                        info1 = gr.Textbox(label="Status (wait until it says 'end preprocess'):", value="")
-                        easy_uploader.upload(fn=upload_to_dataset, inputs=[easy_uploader, trainset_dir4], outputs=[info1])
+                        info1 = gr.Textbox(
+                            label="Status (wait until it says 'end preprocess'):",
+                            value="",
+                        )
+                        easy_uploader.upload(
+                            fn=upload_to_dataset,
+                            inputs=[easy_uploader, trainset_dir4],
+                            outputs=[info1],
+                        )
                         but1.click(
-                            preprocess_dataset, [trainset_dir4, exp_dir1, sr2, np7], [info1]
+                            preprocess_dataset,
+                            [trainset_dir4, exp_dir1, sr2, np7],
+                            [info1],
                         )
                     with gr.Column():
                         spk_id5 = gr.Slider(
@@ -1903,25 +2174,30 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             label=i18n("请指定说话人id"),
                             value=0,
                             interactive=True,
-                            visible=False
+                            visible=False,
                         )
-                        with gr.Accordion('GPU Settings', open=False, visible=False):
+                        with gr.Accordion("GPU Settings", open=False, visible=False):
                             gpus6 = gr.Textbox(
                                 label=i18n("以-分隔输入使用的卡号, 例如   0-1-2   使用卡0和卡1和卡2"),
                                 value=gpus,
                                 interactive=True,
-                                visible=False
+                                visible=False,
                             )
                             gpu_info9 = gr.Textbox(label=i18n("显卡信息"), value=gpu_info)
                         f0method8 = gr.Radio(
                             label=i18n(
                                 "选择音高提取算法:输入歌声可用pm提速,高质量语音但CPU差可用dio提速,harvest质量更好但慢"
                             ),
-                            choices=["harvest","crepe", "mangio-crepe", "rmvpe"], # Fork feature: Crepe on f0 extraction for training.
+                            choices=[
+                                "harvest",
+                                "crepe",
+                                "mangio-crepe",
+                                "rmvpe",
+                            ],  # Fork feature: Crepe on f0 extraction for training.
                             value="rmvpe",
                             interactive=True,
                         )
-                        
+
                         extraction_crepe_hop_length = gr.Slider(
                             minimum=1,
                             maximum=512,
@@ -1931,15 +2207,31 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             interactive=True,
                             visible=False,
                         )
-                        f0method8.change(fn=whethercrepeornah, inputs=[f0method8], outputs=[extraction_crepe_hop_length])
+                        f0method8.change(
+                            fn=whethercrepeornah,
+                            inputs=[f0method8],
+                            outputs=[extraction_crepe_hop_length],
+                        )
                         but2 = gr.Button("2. Pitch Extraction", variant="primary")
-                        info2 = gr.Textbox(label="Status(Check the Colab Notebook's cell output):", value="", max_lines=8)
+                        info2 = gr.Textbox(
+                            label="Status(Check the Colab Notebook's cell output):",
+                            value="",
+                            max_lines=8,
+                        )
                         but2.click(
-                                extract_f0_feature,
-                                [gpus6, np7, f0method8, if_f0_3, exp_dir1, version19, extraction_crepe_hop_length],
-                                [info2],
-                            )
-                    with gr.Row():      
+                            extract_f0_feature,
+                            [
+                                gpus6,
+                                np7,
+                                f0method8,
+                                if_f0_3,
+                                exp_dir1,
+                                version19,
+                                extraction_crepe_hop_length,
+                            ],
+                            [info2],
+                        )
+                    with gr.Row():
                         with gr.Column():
                             total_epoch11 = gr.Slider(
                                 minimum=1,
@@ -1951,19 +2243,35 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             )
                             butstop = gr.Button(
                                 "Stop Training",
-                                variant='primary',
+                                variant="primary",
                                 visible=False,
                             )
-                            but3 = gr.Button("3. Train Model", variant="primary", visible=True)
-                            
-                            but3.click(fn=stoptraining, inputs=[gr.Number(value=0, visible=False)], outputs=[but3, butstop])
-                            butstop.click(fn=stoptraining, inputs=[gr.Number(value=1, visible=False)], outputs=[butstop, but3])
-                            
-                            
+                            but3 = gr.Button(
+                                "3. Train Model", variant="primary", visible=True
+                            )
+
+                            but3.click(
+                                fn=stoptraining,
+                                inputs=[gr.Number(value=0, visible=False)],
+                                outputs=[but3, butstop],
+                            )
+                            butstop.click(
+                                fn=stoptraining,
+                                inputs=[gr.Number(value=1, visible=False)],
+                                outputs=[butstop, but3],
+                            )
+
                             but4 = gr.Button("4.Train Index", variant="primary")
-                            info3 = gr.Textbox(label="Status(Check the Colab Notebook's cell output):", value="", max_lines=10)
-                            with gr.Accordion("Training Preferences (You can leave these as they are)", open=False):
-                                #gr.Markdown(value=i18n("step3: 填写训练设置, 开始训练模型和索引"))
+                            info3 = gr.Textbox(
+                                label="Status(Check the Colab Notebook's cell output):",
+                                value="",
+                                max_lines=10,
+                            )
+                            with gr.Accordion(
+                                "Training Preferences (You can leave these as they are)",
+                                open=False,
+                            ):
+                                # gr.Markdown(value=i18n("step3: 填写训练设置, 开始训练模型和索引"))
                                 with gr.Column():
                                     save_epoch10 = gr.Slider(
                                         minimum=1,
@@ -1996,11 +2304,19 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                                         value=True,
                                         interactive=True,
                                     )
-                            zip_model = gr.Button('5. Download Model')
-                            zipped_model = gr.Files(label='Your Model and Index file can be downloaded here:')
-                            zip_model.click(fn=zip_downloader, inputs=[exp_dir1], outputs=[zipped_model, info3])
+                            zip_model = gr.Button("5. Download Model")
+                            zipped_model = gr.Files(
+                                label="Your Model and Index file can be downloaded here:"
+                            )
+                            zip_model.click(
+                                fn=zip_downloader,
+                                inputs=[exp_dir1],
+                                outputs=[zipped_model, info3],
+                            )
                 with gr.Group():
-                    with gr.Accordion("Base Model Locations:", open=False, visible=False):
+                    with gr.Accordion(
+                        "Base Model Locations:", open=False, visible=False
+                    ):
                         pretrained_G14 = gr.Textbox(
                             label=i18n("加载预训练底模G路径"),
                             value="pretrained_v2/f0G40k.pth",
@@ -2077,7 +2393,7 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                             if_cache_gpu17,
                             if_save_every_weights18,
                             version19,
-                            extraction_crepe_hop_length
+                            extraction_crepe_hop_length,
                         ],
                         info3,
                     )
@@ -2088,8 +2404,10 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
                 "Wondering how to train a voice? Visit here for the RVC model training guide: https://t.ly/RVC_Training_Guide\n"
                 "-------------------------------\n"
             )
-                
-    if config.iscolab or config.paperspace: # Share gradio link for colab and paperspace (FORK FEATURE)
+
+    if (
+        config.iscolab or config.paperspace
+    ):  # Share gradio link for colab and paperspace (FORK FEATURE)
         app.queue(concurrency_count=511, max_size=1022).launch(share=True, quiet=True)
     else:
         app.queue(concurrency_count=511, max_size=1022).launch(
@@ -2098,4 +2416,4 @@ with gr.Blocks(theme=gr.themes.Base(), title='Mangio-RVC-Web 💻') as app:
             server_port=config.listen_port,
             quiet=True,
         )
-#endregion
+# endregion
